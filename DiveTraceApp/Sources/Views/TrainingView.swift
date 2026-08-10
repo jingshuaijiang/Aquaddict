@@ -10,18 +10,18 @@ struct TrainingView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("已标记 \(store.trainingDives.count) 潜")
+                Text("\(store.trainingDives.count)" + loc(" 潜已标记", " dives tagged"))
                     .font(.system(size: 12)).foregroundStyle(Theme.muted)
                 summaryCards
-                sectionTitle("平稳度趋势", sub: "目标 ≤ ±0.5 m（GUE-F）")
+                sectionTitle(loc("平稳度趋势", "Stability Trend"), sub: loc("目标 ≤ ±0.5 m（GUE-F）", "target ≤ ±0.5 m (GUE-F)"))
                 trendChart(values: store.trainingDives.map { $0.metrics?.stabilityM ?? 0 },
                            color: Theme.accent, target: 0.5)
-                sectionTitle("上升速率违规", sub: ">9 m/min 秒数")
+                sectionTitle(loc("上升速率违规", "Ascent Violations"), sub: loc(">9 m/min 秒数", "seconds >9 m/min"))
                 trendChart(values: store.trainingDives.map { Double($0.metrics?.ascentViolationSec ?? 0) },
                            color: Theme.temp, target: nil)
-                sectionTitle("近 5 潜曲线叠加", sub: "时间归一化 · 最新最亮")
+                sectionTitle(loc("近 5 潜曲线叠加", "Last 5 Overlaid"), sub: loc("时间归一化 · 最新最亮", "time-normalized · latest brightest"))
                 overlayChart
-                Text("SAC 气耗趋势 — 在详情页录入起止压力与瓶规格后自动计算")
+                Text(loc("SAC 气耗趋势 — AI 数据或手动录入压力后自动计算", "SAC trend — computed from AI data or manual pressures"))
                     .font(.system(size: 12)).foregroundStyle(Theme.faint)
                     .frame(maxWidth: .infinity).padding(14)
                     .overlay(RoundedRectangle(cornerRadius: 14)
@@ -31,7 +31,7 @@ struct TrainingView: View {
             .padding(.horizontal, 16)
         }
         .background(Theme.abyss)
-        .navigationTitle("GUE 训练")
+        .navigationTitle(loc("GUE 训练", "GUE Training"))
     }
 
     private func sectionTitle(_ t: String, sub: String) -> some View {
@@ -48,11 +48,11 @@ struct TrainingView: View {
         let stop = recent.compactMap { $0.metrics?.stopSec }
         func avg(_ a: [Double]) -> Double { a.isEmpty ? 0 : a.reduce(0, +) / Double(a.count) }
         return HStack(spacing: 8) {
-            card("平稳度", String(format: "±%.2f", avg(stab)), "m · 近8潜均值",
+            card(loc("平稳度", "STABILITY"), String(format: "±%.2f", avg(stab)), loc("m · 近8潜均值", "m · last 8 avg"),
                  good: avg(stab) <= 0.5)
-            card("上升违规", String(format: "%.0f", avg(viol.map(Double.init))), "s/潜 · 近8潜均值",
+            card(loc("上升违规", "ASC. VIOL."), String(format: "%.0f", avg(viol.map(Double.init))), loc("s/潜 · 近8潜均值", "s/dive · last 8 avg"),
                  good: avg(viol.map(Double.init)) < 30)
-            card("停留", String(format: "%.0f", avg(stop.map(Double.init))), "s/潜 · 3/6m 带内",
+            card(loc("停留", "STOPS"), String(format: "%.0f", avg(stop.map(Double.init))), loc("s/潜 · 3/6m 带内", "s/dive in 3/6m band"),
                  good: true)
         }
     }

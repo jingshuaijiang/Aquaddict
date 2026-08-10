@@ -47,20 +47,20 @@ struct MapTabView: View {
             .mapStyle(.imagery)
             .overlay(alignment: .bottom) {
                 if located.isEmpty {
-                    Text("暂无带坐标的潜水 — Perdix 3 的 GNSS 潜水下载后会自动出现在这里")
+                    Text(loc("暂无带坐标的潜水 — Perdix 3 的 GNSS 潜水下载后会自动出现在这里", "No dives with coordinates yet — Perdix 3 GNSS dives appear here after download"))
                         .font(.system(size: 12)).foregroundStyle(Theme.ink)
                         .padding(.horizontal, 14).padding(.vertical, 10)
                         .background(.ultraThinMaterial, in: Capsule())
                         .padding(.bottom, 12)
                 } else {
-                    Text("\(located.count) 潜有 GNSS 坐标")
+                    Text("\(located.count)" + loc(" 潜有 GNSS 坐标", " dives with GNSS fix"))
                         .font(.system(size: 11)).foregroundStyle(Theme.ink)
                         .padding(.horizontal, 12).padding(.vertical, 7)
                         .background(.ultraThinMaterial, in: Capsule())
                         .padding(.bottom, 12)
                 }
             }
-            .navigationTitle("潜水地图")
+            .navigationTitle(loc("潜水地图", "Dive Map"))
             .toolbarBackground(Theme.abyss, for: .navigationBar)
             .sheet(item: $selected) { dive in
                 NavigationStack { DiveDetailView(dive: dive) }

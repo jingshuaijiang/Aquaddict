@@ -3,6 +3,7 @@ import DiveKit
 
 struct DiveDetailView: View {
     let dive: Dive
+    @State private var prefs = Prefs.shared
 
     var body: some View {
         ScrollView {
@@ -10,22 +11,22 @@ struct DiveDetailView: View {
                 header
                 DiveProfileChart(dive: dive)
                     .cardStyle()
-                sectionTitle("概要")
+                sectionTitle(loc("概要", "Summary"))
                 summaryGrid
-                sectionTitle("减压 · 气体")
+                sectionTitle(loc("减压 · 气体", "Deco · Gas"))
                 decoCard
                 if dive.training, let m = dive.metrics {
-                    sectionTitle("训练评分")
+                    sectionTitle(loc("训练评分", "Training Scores"))
                     trainingScores(m)
                 }
-                sectionTitle("潜点 · 笔记")
+                sectionTitle(loc("潜点 · 笔记", "Site · Notes"))
                 locationSection
                 placeholder
             }
             .padding(.horizontal, 16)
         }
         .background(Theme.abyss)
-        .navigationTitle("潜水 #\(dive.n)")
+        .navigationTitle(loc("潜水", "Dive") + " #\(dive.n)")
         .navigationBarTitleDisplayMode(.large)
     }
 
@@ -49,12 +50,18 @@ struct DiveDetailView: View {
 
     private var summaryGrid: some View {
         LazyVGrid(columns: [.init(.flexible(), spacing: 8), .init(.flexible())], spacing: 8) {
-            stat("最大深度", String(format: "%.1f", dive.maxDepth), "m")
-            stat("平均深度 x̄", String(format: "%.1f", dive.avgDepth), "m")
-            stat("时长", fmtDur(dive.durationS), "")
-            stat("水温", String(format: "%.0f–%.0f", dive.tempMin, dive.tempMax), "°C")
-            stat("最大上升速率", String(format: "%.1f", maxAscent), "m/min")
-            stat("CNS 峰值", "\(dive.cnsMax)", "%")
+            stat(loc("最大深度", "MAX DEPTH"),
+                 String(format: "%.\(prefs.imperial ? 0 : 1)f", U.depthValue(dive.maxDepth)),
+                 U.depthUnit)
+            stat(loc("平均深度 x̄", "AVG DEPTH x̄"),
+                 String(format: "%.\(prefs.imperial ? 0 : 1)f", U.depthValue(dive.avgDepth)),
+                 U.depthUnit)
+            stat(loc("时长", "DURATION"), fmtDur(dive.durationS), "")
+            stat(loc("水温", "WATER TEMP"), U.tempRange(dive.tempMin, dive.tempMax), "")
+            stat(loc("最大上升速率", "MAX ASCENT"),
+                 String(format: "%.1f", prefs.imperial ? maxAscent * U.ftPerM : maxAscent),
+                 U.rateUnit)
+            stat(loc("CNS 峰值", "CNS PEAK"), "\(dive.cnsMax)", "%")
         }
     }
 
@@ -80,28 +87,29 @@ struct DiveDetailView: View {
                                               surfaceMbar: h.surfaceMbar)
         let end = GasPhysics.endM(depthM: dive.maxDepth, he: dive.he)
         let gasName = dive.he > 0 ? "Tx \(dive.o2)/\(dive.he)"
-                    : dive.o2 == 21 ? "空气" : "EAN\(dive.o2)"
+                    : dive.o2 == 21 ? loc("空气", "Air") : "EAN\(dive.o2)"
         return VStack(spacing: 0) {
-            kv("减压模型", "\(h.decoModel.rawValue) \(h.gfLow)/\(h.gfHigh)")
-            kv("最低 NDL / 最大 TTS",
+            kv(loc("减压模型", "Deco model"), "\(h.decoModel.rawValue) \(h.gfLow)/\(h.gfHigh)")
+            kv(loc("最低 NDL / 最大 TTS", "Min NDL / Max TTS"),
                "\(dive.samples.map(\.ndlMin).min() ?? 0) / \(dive.samples.map(\.ttsMin).max() ?? 0) min")
-            kv("气体", "\(gasName) · O₂ \(dive.o2)% He \(dive.he)%")
-            kv("气体密度 @ \(Int(dive.maxDepth))m",
+            kv(loc("气体", "Gas"), "\(gasName) · O₂ \(dive.o2)% He \(dive.he)%")
+            kv(loc("气体密度", "Gas density") + " @ " + U.depth(dive.maxDepth, digits: 0),
                String(format: "%.1f g/L", density),
                color: density <= 5.2 ? Theme.good : density <= 6.2 ? Theme.ink : Theme.danger)
-            kv("END @ \(Int(dive.maxDepth))m", String(format: "%.0f m", end),
+            kv("END @ " + U.depth(dive.maxDepth, digits: 0), U.depth(end, digits: 0),
                color: end <= 30 ? Theme.good : Theme.danger)
-            kv("水型 · 表面气压",
-               "\(h.waterDensity == 1000 ? "淡水" : "海水") \(h.waterDensity) · \(h.surfaceMbar) mbar")
+            kv(loc("水型 · 表面气压", "Water · Surface pressure"),
+               loc(h.waterDensity == 1000 ? "淡水" : "海水",
+                   h.waterDensity == 1000 ? "Fresh" : "Salt")
+               + " \(h.waterDensity) · \(h.surfaceMbar) mbar")
             sacRows
-            kv("采样间隔", "\(dive.intervalS) s", last: true)
+            kv(loc("采样间隔", "Sample rate"), "\(dive.intervalS) s", last: true)
         }
         .cardStyle()
     }
 
-    // Gas consumption from AI transmitter data. SAC is normalized to the
-    // surface (per-ata) and to a standard AL80 (11.1 L) — real tank size
-    // entry comes with the gear settings feature.
+    // Gas consumption from AI transmitter data, surface-normalized; tank size
+    // defaults to an AL80 (11.1 L) until gear settings arrive.
     @ViewBuilder
     private var sacRows: some View {
         let pressures = dive.samples.compactMap { s in s.tank1Bar.map { (s.timeS, $0) } }
@@ -109,11 +117,10 @@ struct DiveDetailView: View {
            last.0 > first.0, first.1 > last.1 {
             let minutes = Double(last.0 - first.0) / 60.0
             let avgAta = 1.0 + dive.avgDepth / 10.0
-            let barPerMin = (first.1 - last.1) / minutes / avgAta
-            let sacL = barPerMin * 11.1
-            kv("气瓶压力", String(format: "%.0f → %.0f bar", first.1, last.1),
-               color: Theme.pressure)
-            kv("SAC 气耗", String(format: "%.1f L/min @11.1L 瓶", sacL),
+            let sacL = (first.1 - last.1) / minutes / avgAta * 11.1
+            kv(loc("气瓶压力", "Tank pressure"),
+               "\(U.pressure(first.1)) → \(U.pressure(last.1))", color: Theme.pressure)
+            kv(loc("SAC 气耗", "SAC"), U.sac(sacL) + loc(" @11.1L 瓶", " @AL80"),
                color: sacL <= 18 ? Theme.good : Theme.ink)
         }
     }
@@ -133,12 +140,15 @@ struct DiveDetailView: View {
 
     private func trainingScores(_ m: TrainingMetrics) -> some View {
         HStack(spacing: 8) {
-            scoreCell("平稳度", m.stabilityM.map { String(format: "±%.2f", $0) } ?? "—",
-                      "目标 ≤ ±0.5 m", good: (m.stabilityM ?? 9) <= 0.5)
-            scoreCell("上升违规", "\(m.ascentViolationSec)s",
-                      String(format: "峰值 %.1f m/min", m.maxAscentRateMPerMin),
+            scoreCell(loc("平稳度", "STABILITY"),
+                      m.stabilityM.map { "±" + U.depth($0, digits: 2) } ?? "—",
+                      loc("目标", "target") + " ≤ ±" + U.depth(0.5, digits: 1),
+                      good: (m.stabilityM ?? 9) <= 0.5)
+            scoreCell(loc("上升违规", "ASCENT VIOL."), "\(m.ascentViolationSec)s",
+                      loc("峰值 ", "peak ") + U.rate(m.maxAscentRateMPerMin),
                       good: m.ascentViolationSec == 0)
-            scoreCell("停留", "\(m.stopSec)s", "3/6 m ± 0.6 m", good: m.stopSec >= 120)
+            scoreCell(loc("停留", "STOPS"), "\(m.stopSec)s",
+                      "3/6 m ± 0.6 m", good: m.stopSec >= 120)
         }
     }
 
@@ -160,9 +170,11 @@ struct DiveDetailView: View {
     private var locationSection: some View {
         if let entry = dive.header.entryLocation {
             VStack(spacing: 0) {
-                kv("入水坐标", String(format: "%.5f, %.5f", entry.latitude, entry.longitude))
+                kv(loc("入水坐标", "Entry"), String(format: "%.5f, %.5f",
+                                                    entry.latitude, entry.longitude))
                 if let exit = dive.header.exitLocation {
-                    kv("出水坐标", String(format: "%.5f, %.5f", exit.latitude, exit.longitude),
+                    kv(loc("出水坐标", "Exit"), String(format: "%.5f, %.5f",
+                                                       exit.latitude, exit.longitude),
                        last: true)
                 }
             }
@@ -171,7 +183,8 @@ struct DiveDetailView: View {
     }
 
     private var placeholder: some View {
-        Text("未设置潜点 — 在地图上选择或新建潜点，可多潜批量关联\n笔记：点击添加（潜伴、装备、能见度…）")
+        Text(loc("未设置潜点 — 在地图上选择或新建潜点，可多潜批量关联\n笔记：点击添加（潜伴、装备、能见度…）",
+                 "No dive site set — pick one on the map, batch-assign supported\nNotes: tap to add (buddy, gear, visibility…)"))
             .font(.system(size: 12)).foregroundStyle(Theme.faint)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)

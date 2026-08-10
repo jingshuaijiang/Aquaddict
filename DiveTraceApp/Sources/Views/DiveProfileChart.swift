@@ -80,9 +80,9 @@ struct DiveProfileChart: View {
     private var legendChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip("深度", Theme.depth, .constant(true))
-                chip("平均", Theme.ink, $showAvg)
-                chip("水温", Theme.temp, $showTemp)
+                chip(loc("深度", "Depth"), Theme.depth, .constant(true))
+                chip(loc("平均", "Avg"), Theme.ink, $showAvg)
+                chip(loc("水温", "Temp"), Theme.temp, $showTemp)
                 if hasPressure { chip("SAC", Theme.pressure, $showSAC) }
                 chip("NDL", Theme.ndl, $showNDL)
             }
@@ -182,7 +182,7 @@ struct DiveProfileChart: View {
                 AxisGridLine().foregroundStyle(Theme.line.opacity(0.6))
                 AxisValueLabel(anchor: .trailing) {
                     if let d = v.as(Double.self) {
-                        Text("\(Int(d))").font(.system(size: 9, design: .monospaced))
+                        Text("\(Int(U.depthValue(d)))").font(.system(size: 9, design: .monospaced))
                             .foregroundStyle(Theme.faint)
                     }
                 }
@@ -238,23 +238,23 @@ struct DiveProfileChart: View {
             let s = dive.samples[i]
             HStack(spacing: 10) {
                 Text(fmtDur(s.timeS)).bold()
-                pair("深度", String(format: "%.1fm", s.depthM), Theme.depth)
-                pair("x̄", String(format: "%.1fm", runningAvg[i]), Theme.ink)
-                pair("温", String(format: "%.0f°", s.tempC), Theme.temp)
+                pair(loc("深", "D"), U.depth(s.depthM), Theme.depth)
+                pair("x̄", U.depth(runningAvg[i]), Theme.ink)
+                pair(loc("温", "T"), U.temp(s.tempC), Theme.temp)
                 if let sac = sacSeries.last(where: { $0.t <= s.timeS })?.sac {
-                    pair("SAC", String(format: "%.1fL/m", sac), Theme.pressure)
+                    pair("SAC", U.sac(sac), Theme.pressure)
                 }
-                if let bar = s.tank1Bar { pair("压", String(format: "%.0fbar", bar), Theme.pressure) }
+                if let bar = s.tank1Bar { pair(loc("压", "P"), U.pressure(bar), Theme.pressure) }
                 pair("NDL", "\(s.ndlMin)'", Theme.ndl)
             }
             .font(.system(size: 11, design: .monospaced))
             .foregroundStyle(Theme.ink)
         } else {
             HStack(spacing: 10) {
-                Text("触摸曲线查看逐点数据").font(.system(size: 10)).foregroundStyle(Theme.faint)
+                Text(loc("触摸曲线查看逐点数据", "Touch the curve for point data")).font(.system(size: 10)).foregroundStyle(Theme.faint)
                 Spacer()
                 if let sac = avgSAC {
-                    Text(String(format: "SAC 平均 %.1f L/min", sac))
+                    Text(loc("SAC 平均 ", "avg SAC ") + U.sac(sac))
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(Theme.pressure)
                 }
@@ -300,7 +300,7 @@ struct FullscreenChartView: View {
         GeometryReader { geo in
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("潜水 #\(dive.n) · \(dive.dayText)")
+                    Text(loc("潜水", "Dive") + " #\(dive.n) · \(dive.dayText)")
                         .font(.system(size: 14, weight: .bold))
                     Spacer()
                     Button {

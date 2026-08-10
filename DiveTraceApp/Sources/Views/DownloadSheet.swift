@@ -12,21 +12,21 @@ struct DownloadSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             Capsule().fill(Theme.faint).frame(width: 38, height: 4)
                 .frame(maxWidth: .infinity)
-            Text("从潜水电脑下载").font(.system(size: 17, weight: .bold))
-            (Text("把潜水电脑调到 ") + Text("Bluetooth").foregroundStyle(Theme.accent).bold()
-             + Text(" 模式（Menu → Bluetooth），它就会出现在这里"))
+            Text(loc("从潜水电脑下载", "Download from Dive Computer")).font(.system(size: 17, weight: .bold))
+            (Text(loc("把潜水电脑调到 ", "Put your computer in ")) + Text("Bluetooth").foregroundStyle(Theme.accent).bold()
+             + Text(loc(" 模式（Menu → Bluetooth），它就会出现在这里", " mode (Menu → Bluetooth) and it will appear here")))
                 .font(.system(size: 12)).foregroundStyle(Theme.muted)
 
             if ble.bluetoothOff {
-                Label("蓝牙已关闭 — 请在设置里打开", systemImage: "exclamationmark.triangle")
+                Label(loc("蓝牙已关闭 — 请在设置里打开", "Bluetooth is off — enable it in Settings"), systemImage: "exclamationmark.triangle")
                     .font(.system(size: 12)).foregroundStyle(Theme.danger)
             }
 
-            label("附近的 Shearwater")
+            label(loc("附近的 Shearwater", "NEARBY SHEARWATER"))
             if ble.devices.isEmpty {
                 HStack(spacing: 8) {
                     ProgressView().tint(Theme.accent)
-                    Text("扫描中…").font(.system(size: 12)).foregroundStyle(Theme.faint)
+                    Text(loc("扫描中…", "Scanning…")).font(.system(size: 12)).foregroundStyle(Theme.faint)
                 }
                 .frame(maxWidth: .infinity).padding(16)
                 .overlay(RoundedRectangle(cornerRadius: 12)
@@ -76,11 +76,11 @@ struct DownloadSheet: View {
                 .foregroundStyle(Theme.accent)
             VStack(alignment: .leading, spacing: 3) {
                 Text(device.name).font(.system(size: 13.5, weight: .semibold))
-                Text("信号 \(signalBars(device.rssi)) · \(device.model?.displayName ?? "Shearwater")")
+                Text(loc("信号 ", "signal ") + "\(signalBars(device.rssi)) · \(device.model?.displayName ?? "Shearwater")")
                     .font(.system(size: 10.5)).foregroundStyle(Theme.muted)
             }
             Spacer()
-            Button("下载") {
+            Button(loc("下载", "Get")) {
                 Task { await manager.download(from: device, ble: ble, store: store) }
             }
             .disabled(busy)
@@ -104,18 +104,18 @@ struct DownloadSheet: View {
         case .idle:
             EmptyView()
         case .connecting(let name):
-            progressLine("连接 \(name)…")
+            progressLine(loc("连接 ", "Connecting ") + "\(name)…")
         case .readingManifest:
-            progressLine("读取潜水清单…")
+            progressLine(loc("读取潜水清单…", "Reading dive manifest…"))
         case .downloading(let current, let total):
             VStack(spacing: 6) {
-                progressLine("下载潜水 \(current)/\(total)…")
+                progressLine(loc("下载潜水 ", "Downloading dive ") + "\(current)/\(total)…")
                 ProgressView(value: Double(current), total: Double(max(total, 1)))
                     .tint(Theme.accent)
             }
         case .done(let new):
-            Text(new == 0 ? "✓ 已是最新 — 没有新潜水"
-                          : "✓ 下载完成 — \(new) 潜已加入日志本")
+            Text(new == 0 ? loc("✓ 已是最新 — 没有新潜水", "✓ Up to date — no new dives")
+                          : loc("✓ 下载完成 — ", "✓ Done — ") + "\(new)" + loc(" 潜已加入日志本", " dives added"))
                 .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.good)
                 .frame(maxWidth: .infinity)
                 .task {
@@ -123,7 +123,7 @@ struct DownloadSheet: View {
                     dismiss()
                 }
         case .failed(let message):
-            Text("下载失败：\(message)")
+            Text(loc("下载失败：", "Download failed: ") + "\(message)")
                 .font(.system(size: 11)).foregroundStyle(Theme.danger)
         }
     }

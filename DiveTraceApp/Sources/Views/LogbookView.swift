@@ -4,6 +4,7 @@ import DiveKit
 struct LogbookView: View {
     @Environment(DiveStore.self) private var store
     @State private var showDownload = false
+    @State private var prefs = Prefs.shared
 
     var body: some View {
         NavigationStack {
@@ -26,9 +27,11 @@ struct LogbookView: View {
                             .buttonStyle(.plain)
                         }
                     } else {
-                        ContentUnavailableView("连接你的潜水电脑",
-                                               systemImage: "antenna.radiowaves.left.and.right",
-                                               description: Text("下载潜水日志后会显示在这里"))
+                        ContentUnavailableView(
+                            loc("连接你的潜水电脑", "Connect your dive computer"),
+                            systemImage: "antenna.radiowaves.left.and.right",
+                            description: Text(loc("下载潜水日志后会显示在这里",
+                                                  "Downloaded dives will appear here")))
                             .padding(.top, 80)
                     }
                 }
@@ -41,10 +44,21 @@ struct LogbookView: View {
 
     private var brand: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("潜迹").font(.system(size: 24, weight: .bold))
-            Text("DIVETRACE").font(.system(size: 10, weight: .semibold))
+            Text("Aquaddict").font(.system(size: 24, weight: .bold))
+            Text(loc("潜水日志", "DIVE LOG")).font(.system(size: 10, weight: .semibold))
                 .kerning(3).foregroundStyle(Theme.accent)
             Spacer()
+            Button {
+                prefs.imperial.toggle()
+            } label: {
+                Text(prefs.imperial ? "ft · psi" : "m · bar")
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Theme.panel2, in: Capsule())
+                    .overlay(Capsule().stroke(Theme.line, lineWidth: 1))
+                    .foregroundStyle(Theme.accent)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.top, 6)
     }
@@ -53,18 +67,21 @@ struct LogbookView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("上一潜 · #\(dive.n) · \(dive.dayText)")
+                    Text(loc("上一潜", "LAST DIVE") + " · #\(dive.n) · \(dive.dayText)")
                         .font(.system(size: 10, weight: .semibold)).kerning(1.5)
                         .foregroundStyle(Theme.muted)
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(String(format: "%.1f", dive.maxDepth))
+                        Text(String(format: "%.\(prefs.imperial ? 0 : 1)f",
+                                    U.depthValue(dive.maxDepth)))
                             .font(.system(size: 40, weight: .bold, design: .monospaced))
-                        Text("米 · 最大深度").font(.caption).foregroundStyle(Theme.muted)
+                        Text(U.depthUnit + " · " + loc("最大深度", "max depth"))
+                            .font(.caption).foregroundStyle(Theme.muted)
                     }
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
-                    Text("时长").font(.system(size: 10, weight: .semibold)).kerning(1.5)
+                    Text(loc("时长", "TIME"))
+                        .font(.system(size: 10, weight: .semibold)).kerning(1.5)
                         .foregroundStyle(Theme.muted)
                     Text(fmtDur(dive.durationS))
                         .font(.system(size: 22, weight: .bold, design: .monospaced))
@@ -74,7 +91,8 @@ struct LogbookView: View {
             Button {
                 showDownload = true
             } label: {
-                Label("从潜水电脑下载", systemImage: "arrow.down.circle.fill")
+                Label(loc("从潜水电脑下载", "Download from dive computer"),
+                      systemImage: "arrow.down.circle.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
@@ -92,10 +110,10 @@ struct LogbookView: View {
             Image(systemName: "chart.line.uptrend.xyaxis")
                 .foregroundStyle(Theme.accent)
             VStack(alignment: .leading, spacing: 3) {
-                Text("GUE 训练分析").font(.system(size: 14, weight: .semibold))
+                Text(loc("GUE 训练分析", "GUE Training")).font(.system(size: 14, weight: .semibold))
                 let last = store.trainingDives.last?.metrics?.stabilityM
-                Text("\(store.trainingDives.count) 潜已标记" +
-                     (last.map { String(format: " · 最近平稳度 ±%.2f m", $0) } ?? ""))
+                Text("\(store.trainingDives.count)" + loc(" 潜已标记", " dives tagged") +
+                     (last.map { " · " + loc("最近平稳度", "stability") + " ±" + U.depth($0, digits: 2) } ?? ""))
                     .font(.system(size: 11)).foregroundStyle(Theme.muted)
             }
             Spacer()
@@ -106,9 +124,9 @@ struct LogbookView: View {
 
     private var listHeader: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text("日志本").font(.system(size: 16, weight: .bold))
+            Text(loc("日志本", "Logbook")).font(.system(size: 16, weight: .bold))
             Spacer()
-            Text("\(store.dives.count) 潜 · Peregrine + Perdix 3")
+            Text("\(store.dives.count)" + loc(" 潜", " dives") + " · Peregrine + Perdix 3")
                 .font(.system(size: 11)).foregroundStyle(Theme.muted)
         }
         .padding(.top, 8)
@@ -124,21 +142,21 @@ struct DiveRow: View {
                 HStack(spacing: 8) {
                     Text("#\(dive.n)").font(.system(size: 13, weight: .semibold))
                     if dive.training {
-                        Text("训练").font(.system(size: 9, weight: .semibold))
+                        Text(loc("训练", "TRAIN")).font(.system(size: 9, weight: .semibold))
                             .padding(.horizontal, 5).padding(.vertical, 1)
                             .foregroundStyle(Theme.accent)
                             .overlay(RoundedRectangle(cornerRadius: 6)
                                 .stroke(Theme.accent.opacity(0.4), lineWidth: 1))
                     }
                 }
-                Text(dive.dateText + String(format: " · %.0f–%.0f°C", dive.tempMin, dive.tempMax))
+                Text(dive.dateText + " · " + U.tempRange(dive.tempMin, dive.tempMax))
                     .font(.system(size: 11)).foregroundStyle(Theme.muted)
             }
             Spacer()
             SparklineView(depths: dive.samples.map(\.depthM))
                 .frame(width: 72, height: 30)
             VStack(alignment: .trailing, spacing: 2) {
-                Text(String(format: "%.1f m", dive.maxDepth))
+                Text(U.depth(dive.maxDepth))
                     .font(.system(size: 15, weight: .bold, design: .monospaced))
                 Text(fmtDur(dive.durationS))
                     .font(.system(size: 10, design: .monospaced))

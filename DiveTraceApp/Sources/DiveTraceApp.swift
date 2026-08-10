@@ -20,9 +20,9 @@ struct RootView: View {
     var body: some View {
         TabView {
             LogbookView()
-                .tabItem { Label("日志", systemImage: "water.waves") }
+                .tabItem { Label(loc("日志", "Log"), systemImage: "water.waves") }
             MapTabView()
-                .tabItem { Label("地图", systemImage: "mappin.and.ellipse") }
+                .tabItem { Label(loc("地图", "Map"), systemImage: "mappin.and.ellipse") }
         }
         .task { store.load() }
     }

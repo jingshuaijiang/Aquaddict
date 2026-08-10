@@ -19,6 +19,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.jjsbanana.divetrace
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Aquaddict
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIUserInterfaceStyle: Dark
         INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "连接 Shearwater 潜水电脑下载潜水日志 / Connects to your Shearwater dive computer to download dive logs"
