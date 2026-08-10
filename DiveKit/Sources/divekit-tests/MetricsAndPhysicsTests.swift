@@ -61,3 +61,39 @@ func metricsAndPhysicsTests() {
         }
     }
 }
+
+func gnssTests() {
+    runTest("gnssParsedFromSyntheticRecord9") {
+        // take a real dive, splice in opening/closing record 9 with a fix,
+        // and bump the log version to 17
+        var raw = [UInt8](try loadFixture("dive_046.pnf.bin"))
+        var idxO4 = -1
+        for i in stride(from: 0, to: raw.count, by: 32) where raw[i] == 0x14 { idxO4 = i }
+        expect(idxO4 >= 0, "found opening 4")
+        raw[idxO4 + 16] = 17   // log version
+
+        func record9(_ type: UInt8, lat: Int32, lon: Int32) -> [UInt8] {
+            var r = [UInt8](repeating: 0, count: 32)
+            r[0] = type; r[16] = 3
+            for (o, v) in [(21, lat), (25, lon)] {
+                let u = UInt32(bitPattern: v)
+                r[o] = UInt8(u >> 24 & 0xFF); r[o+1] = UInt8(u >> 16 & 0xFF)
+                r[o+2] = UInt8(u >> 8 & 0xFF); r[o+3] = UInt8(u & 0xFF)
+            }
+            return r
+        }
+        // 29.53512°N 121.03427°E entry / slightly different exit
+        raw.insert(contentsOf: record9(0x19, lat: 2953512, lon: 12103427), at: idxO4 + 32)
+        raw.append(contentsOf: record9(0x29, lat: 2953600, lon: 12103500))
+
+        let (h, _) = try PNFParser.parse(Data(raw))
+        expectClose(h.entryLocation?.latitude ?? 0, 29.53512, tol: 1e-6, "entry lat")
+        expectClose(h.entryLocation?.longitude ?? 0, 121.03427, tol: 1e-6, "entry lon")
+        expectClose(h.exitLocation?.latitude ?? 0, 29.536, tol: 1e-6, "exit lat")
+    }
+
+    runTest("gnssNilForPeregrineDives") {
+        let (h, _) = try PNFParser.parse(try loadFixture("dive_046.pnf.bin"))
+        expect(h.entryLocation == nil && h.exitLocation == nil, "no GNSS on Peregrine")
+    }
+}

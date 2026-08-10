@@ -46,6 +46,15 @@ public enum DecoModel: String, Codable, Sendable {
     }
 }
 
+public struct GeoPoint: Codable, Sendable, Equatable {
+    public let latitude: Double
+    public let longitude: Double
+    public init(latitude: Double, longitude: Double) {
+        self.latitude = latitude
+        self.longitude = longitude
+    }
+}
+
 public struct DiveHeader: Codable, Sendable, Equatable {
     public let imperial: Bool
     public let logVersion: Int
@@ -60,6 +69,10 @@ public struct DiveHeader: Codable, Sendable, Equatable {
     /// Dive start, as the device's local wall-clock time encoded as a Unix
     /// timestamp (i.e. interpret in UTC to get the wall-clock fields back).
     public let startTimestamp: UInt32
+    /// GNSS surface positions (log version >= 17, e.g. Perdix 3): where the
+    /// diver entered and left the water.
+    public let entryLocation: GeoPoint?
+    public let exitLocation: GeoPoint?
 }
 
 public struct DiveSample: Codable, Sendable, Equatable {

@@ -15,11 +15,25 @@ public enum PNFParser {
     static let recordSize = 32
     static let feet = 0.3048
 
+    /// GNSS surface position from an opening/closing record 9:
+    /// byte 16 = fix status (2 = 2D, 3 = 3D), signed BE lat/lon at 21/25, 1e-5 deg.
+    static func gnssPoint(_ rec: [UInt8]?) -> GeoPoint? {
+        guard let r = rec, r[16] == 2 || r[16] == 3 else { return nil }
+        let lat = Int32(bitPattern: UInt32(r[21]) << 24 | UInt32(r[22]) << 16
+            | UInt32(r[23]) << 8 | UInt32(r[24]))
+        let lon = Int32(bitPattern: UInt32(r[25]) << 24 | UInt32(r[26]) << 16
+            | UInt32(r[27]) << 8 | UInt32(r[28]))
+        guard lat != 0 || lon != 0 else { return nil }
+        return GeoPoint(latitude: Double(lat) / 100000.0,
+                        longitude: Double(lon) / 100000.0)
+    }
+
     public static func parse(_ data: Data) throws -> (header: DiveHeader, samples: [DiveSample]) {
         let bytes = [UInt8](data)
         guard bytes.count >= recordSize else { throw PNFError.truncated }
 
         var opening: [Int: [UInt8]] = [:]
+        var closing: [Int: [UInt8]] = [:]
         var records: [[UInt8]] = []
         var i = 0
         while i + recordSize <= bytes.count {
@@ -27,6 +41,8 @@ public enum PNFParser {
             records.append(rec)
             if (0x10 ... 0x19).contains(rec[0]) {
                 opening[Int(rec[0]) - 0x10] = rec
+            } else if (0x20 ... 0x29).contains(rec[0]) {
+                closing[Int(rec[0]) - 0x20] = rec
             }
             i += recordSize
         }
@@ -62,7 +78,9 @@ public enum PNFParser {
             waterDensity: be16(opening[3]!, 3),
             mode: logVersion >= 8 ? DiveMode(rawByte: o4[1]) : .unknown,
             startTimestamp: UInt32(o0[12]) << 24 | UInt32(o0[13]) << 16
-                | UInt32(o0[14]) << 8 | UInt32(o0[15])
+                | UInt32(o0[14]) << 8 | UInt32(o0[15]),
+            entryLocation: logVersion >= 17 ? Self.gnssPoint(opening[9]) : nil,
+            exitLocation: logVersion >= 17 ? Self.gnssPoint(closing[9]) : nil
         )
 
         var samples: [DiveSample] = []

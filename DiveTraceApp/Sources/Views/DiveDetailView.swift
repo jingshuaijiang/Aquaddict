@@ -19,6 +19,7 @@ struct DiveDetailView: View {
                     trainingScores(m)
                 }
                 sectionTitle("潜点 · 笔记")
+                locationSection
                 placeholder
             }
             .padding(.horizontal, 16)
@@ -133,6 +134,20 @@ struct DiveDetailView: View {
         .padding(12)
         .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.line, lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private var locationSection: some View {
+        if let entry = dive.header.entryLocation {
+            VStack(spacing: 0) {
+                kv("入水坐标", String(format: "%.5f, %.5f", entry.latitude, entry.longitude))
+                if let exit = dive.header.exitLocation {
+                    kv("出水坐标", String(format: "%.5f, %.5f", exit.latitude, exit.longitude),
+                       last: true)
+                }
+            }
+            .cardStyle()
+        }
     }
 
     private var placeholder: some View {

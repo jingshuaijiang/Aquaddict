@@ -37,6 +37,17 @@ struct DownloadSheet: View {
             }
 
             phaseView
+            if !BLELog.shared.lines.isEmpty {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(Array(BLELog.shared.lines.enumerated()), id: \.offset) { _, line in
+                            Text(line).font(.system(size: 9, design: .monospaced))
+                                .foregroundStyle(Theme.faint)
+                        }
+                    }
+                }
+                .frame(maxHeight: 90)
+            }
             Spacer()
         }
         .padding(18)
