@@ -86,4 +86,16 @@ public struct DiveSample: Codable, Sendable, Equatable {
     public let o2: Int
     public let he: Int
     public let cns: Int
+    /// AI transmitter tank pressures in bar (nil when AI off / not paired).
+    public let tank1Bar: Double?
+    public let tank2Bar: Double?
+
+    public init(timeS: Int, depthM: Double, tempC: Double, ndlMin: Int, ttsMin: Int,
+                decoStopM: Int, avgPPO2: Double, o2: Int, he: Int, cns: Int,
+                tank1Bar: Double? = nil, tank2Bar: Double? = nil) {
+        self.timeS = timeS; self.depthM = depthM; self.tempC = tempC
+        self.ndlMin = ndlMin; self.ttsMin = ttsMin; self.decoStopM = decoStopM
+        self.avgPPO2 = avgPPO2; self.o2 = o2; self.he = he; self.cns = cns
+        self.tank1Bar = tank1Bar; self.tank2Bar = tank2Bar
+    }
 }

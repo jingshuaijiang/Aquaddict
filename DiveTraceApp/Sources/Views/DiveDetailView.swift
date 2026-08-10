@@ -93,9 +93,29 @@ struct DiveDetailView: View {
                color: end <= 30 ? Theme.good : Theme.danger)
             kv("水型 · 表面气压",
                "\(h.waterDensity == 1000 ? "淡水" : "海水") \(h.waterDensity) · \(h.surfaceMbar) mbar")
+            sacRows
             kv("采样间隔", "\(dive.intervalS) s", last: true)
         }
         .cardStyle()
+    }
+
+    // Gas consumption from AI transmitter data. SAC is normalized to the
+    // surface (per-ata) and to a standard AL80 (11.1 L) — real tank size
+    // entry comes with the gear settings feature.
+    @ViewBuilder
+    private var sacRows: some View {
+        let pressures = dive.samples.compactMap { s in s.tank1Bar.map { (s.timeS, $0) } }
+        if let first = pressures.first, let last = pressures.last,
+           last.0 > first.0, first.1 > last.1 {
+            let minutes = Double(last.0 - first.0) / 60.0
+            let avgAta = 1.0 + dive.avgDepth / 10.0
+            let barPerMin = (first.1 - last.1) / minutes / avgAta
+            let sacL = barPerMin * 11.1
+            kv("气瓶压力", String(format: "%.0f → %.0f bar", first.1, last.1),
+               color: Theme.pressure)
+            kv("SAC 气耗", String(format: "%.1f L/min @11.1L 瓶", sacL),
+               color: sacL <= 18 ? Theme.good : Theme.ink)
+        }
     }
 
     private func kv(_ k: String, _ v: String, color: Color = Theme.ink, last: Bool = false) -> some View {

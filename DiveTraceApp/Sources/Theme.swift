@@ -13,6 +13,7 @@ enum Theme {
     static let depth = Color(red: 0.114, green: 0.616, blue: 0.710)      // #1D9DB5
     static let temp = Color(red: 0.784, green: 0.435, blue: 0.133)       // #C86F22
     static let ndl = Color(red: 0.494, green: 0.431, blue: 0.878)        // #7E6EE0
+    static let pressure = Color(red: 0.455, green: 0.702, blue: 0.353)   // #74B35A
     static let danger = Color(red: 0.910, green: 0.365, blue: 0.290)     // #E85D4A
     static let good = Color(red: 0.247, green: 0.682, blue: 0.478)       // #3FAE7A
 }

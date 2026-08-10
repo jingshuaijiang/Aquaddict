@@ -3,17 +3,22 @@ import Charts
 import DiveKit
 
 // The dive profile: depth as an inverted area+line, running-average depth,
-// ascent-rate violations drawn red on the depth line, water temperature as a
-// normalized overlay band (true values shown by the scrubber), per the
-// approved prototype. One value axis (depth); overlays are direct-labeled.
+// ascent-rate violations in red, plus normalized overlay bands for water
+// temperature (top) and tank pressure (bottom) — true values live in the
+// scrubber readout and the endpoint labels. One real value axis (depth).
 struct DiveProfileChart: View {
     let dive: Dive
-    var showAverage = true
-    var showTemp = true
+    var height: CGFloat = 300
 
     @State private var scrubIndex: Int? = nil
+    @State private var showTemp = true
+    @State private var showAvg = true
+    @State private var showNDL = false
+    @State private var showPressure = true
 
-    private var maxDepth: Double { max(dive.maxDepth * 1.12, 1) }
+    private var maxDepth: Double { max(dive.maxDepth * 1.05, 1) }
+    private var dur: Int { dive.samples.last?.timeS ?? 1 }
+    private var hasPressure: Bool { dive.samples.contains { $0.tank1Bar != nil } }
 
     private var runningAvg: [Double] {
         var out: [Double] = []
@@ -25,42 +30,65 @@ struct DiveProfileChart: View {
         return out
     }
 
-    // temp normalized into the top 30% band of the chart
-    private func tempY(_ t: Double) -> Double {
-        let lo = dive.tempMin, hi = dive.tempMax
-        let span = max(hi - lo, 0.5)
-        return maxDepth * 0.02 + (1 - (t - lo) / span) * maxDepth * 0.26
+    private var pressures: [(t: Int, bar: Double)] {
+        dive.samples.compactMap { s in s.tank1Bar.map { (s.timeS, $0) } }
+    }
+
+    // normalize a value into a horizontal band of the depth axis
+    private func bandY(_ v: Double, lo: Double, hi: Double, top: Double, bottom: Double) -> Double {
+        let span = max(hi - lo, 1e-6)
+        return maxDepth * top + (1 - (v - lo) / span) * maxDepth * (bottom - top)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
+            legendChips
             chart
-            if let i = scrubIndex, dive.samples.indices.contains(i) {
-                scrubReadout(dive.samples[i], avg: runningAvg[i])
-            } else {
-                Text("触摸曲线查看逐点数据")
-                    .font(.caption2).foregroundStyle(Theme.faint)
+            readout
+        }
+    }
+
+    private var legendChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                chip("深度", Theme.depth, .constant(true))
+                chip("平均", Theme.ink, $showAvg)
+                chip("水温", Theme.temp, $showTemp)
+                if hasPressure { chip("气压", Theme.pressure, $showPressure) }
+                chip("NDL", Theme.ndl, $showNDL)
             }
         }
     }
 
+    private func chip(_ label: String, _ color: Color, _ on: Binding<Bool>) -> some View {
+        Button {
+            on.wrappedValue.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                Circle().fill(color).frame(width: 8, height: 8)
+                Text(label).font(.system(size: 11))
+            }
+            .padding(.horizontal, 10).padding(.vertical, 4)
+            .background(Theme.panel2, in: Capsule())
+            .overlay(Capsule().stroke(Theme.line, lineWidth: 1))
+            .opacity(on.wrappedValue ? 1 : 0.35)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Theme.ink)
+    }
+
     private var chart: some View {
         Chart {
-            // water column fill
             ForEach(dive.samples, id: \.timeS) { s in
                 AreaMark(x: .value("t", s.timeS), y: .value("d", s.depthM))
                     .foregroundStyle(.linearGradient(
                         colors: [Theme.accent.opacity(0.28), Theme.depth.opacity(0.03)],
                         startPoint: .bottom, endPoint: .top))
-            }
-            // depth line
-            ForEach(dive.samples, id: \.timeS) { s in
                 LineMark(x: .value("t", s.timeS), y: .value("d", s.depthM),
                          series: .value("series", "depth"))
                     .foregroundStyle(Theme.depth)
                     .lineStyle(StrokeStyle(lineWidth: 2, lineJoin: .round))
             }
-            // ascent violations (>9 m/min) on top, red
             ForEach(violationSegments, id: \.self) { i in
                 LineMark(x: .value("t", dive.samples[i].timeS),
                          y: .value("d", dive.samples[i].depthM),
@@ -68,8 +96,7 @@ struct DiveProfileChart: View {
                     .foregroundStyle(Theme.danger)
                     .lineStyle(StrokeStyle(lineWidth: 2.6, lineJoin: .round))
             }
-            // running average depth
-            if showAverage {
+            if showAvg {
                 ForEach(Array(runningAvg.enumerated()), id: \.offset) { i, avg in
                     LineMark(x: .value("t", dive.samples[i].timeS), y: .value("d", avg),
                              series: .value("series", "avg"))
@@ -77,13 +104,37 @@ struct DiveProfileChart: View {
                         .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [5, 4]))
                 }
             }
-            // temperature, normalized band
             if showTemp {
+                let lo = dive.tempMin, hi = dive.tempMax
                 ForEach(dive.samples, id: \.timeS) { s in
-                    LineMark(x: .value("t", s.timeS), y: .value("d", tempY(s.tempC)),
+                    LineMark(x: .value("t", s.timeS),
+                             y: .value("d", bandY(s.tempC, lo: lo, hi: hi, top: 0.02, bottom: 0.22)),
                              series: .value("series", "temp"))
                         .foregroundStyle(Theme.temp)
                         .lineStyle(StrokeStyle(lineWidth: 1.6))
+                }
+            }
+            if showPressure, hasPressure {
+                let bars = pressures.map(\.bar)
+                let lo = bars.min()!, hi = bars.max()!
+                ForEach(pressures, id: \.t) { p in
+                    LineMark(x: .value("t", p.t),
+                             y: .value("d", bandY(p.bar, lo: lo, hi: hi, top: 0.72, bottom: 0.98)),
+                             series: .value("series", "pressure"))
+                        .foregroundStyle(Theme.pressure)
+                        .lineStyle(StrokeStyle(lineWidth: 1.8))
+                }
+            }
+            if showNDL {
+                let ndls = dive.samples.map { Double($0.ndlMin) }
+                let lo = ndls.min() ?? 0, hi = ndls.max() ?? 1
+                ForEach(dive.samples, id: \.timeS) { s in
+                    LineMark(x: .value("t", s.timeS),
+                             y: .value("d", bandY(Double(s.ndlMin), lo: lo, hi: hi,
+                                                  top: 0.45, bottom: 0.65)),
+                             series: .value("series", "ndl"))
+                        .foregroundStyle(Theme.ndl)
+                        .lineStyle(StrokeStyle(lineWidth: 1.4))
                 }
             }
             if let i = scrubIndex, dive.samples.indices.contains(i) {
@@ -95,20 +146,21 @@ struct DiveProfileChart: View {
                     .symbolSize(40)
             }
         }
+        .chartXScale(domain: 0 ... dur)
         .chartYScale(domain: .automatic(includesZero: true, reversed: true))
         .chartYAxis {
-            AxisMarks(position: .leading) { v in
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { v in
                 AxisGridLine().foregroundStyle(Theme.line.opacity(0.6))
-                AxisValueLabel {
+                AxisValueLabel(anchor: .trailing) {
                     if let d = v.as(Double.self) {
-                        Text("\(Int(d))m").font(.system(size: 9, design: .monospaced))
+                        Text("\(Int(d))").font(.system(size: 9, design: .monospaced))
                             .foregroundStyle(Theme.faint)
                     }
                 }
             }
         }
         .chartXAxis {
-            AxisMarks(values: .stride(by: 600)) { v in
+            AxisMarks(values: .stride(by: dur > 3600 ? 1200 : 600)) { v in
                 AxisValueLabel {
                     if let t = v.as(Int.self) {
                         Text("\(t / 60)'").font(.system(size: 9, design: .monospaced))
@@ -130,11 +182,45 @@ struct DiveProfileChart: View {
                         .onEnded { _ in scrubIndex = nil })
             }
         }
-        .frame(height: 220)
+        .frame(height: height)
+        .padding(.leading, -6)   // tuck the narrow axis in tight
     }
 
-    // indices belonging to ascent-rate violation segments, grouped so line
-    // segments don't connect across separate violations
+    @ViewBuilder
+    private var readout: some View {
+        if let i = scrubIndex, dive.samples.indices.contains(i) {
+            let s = dive.samples[i]
+            HStack(spacing: 10) {
+                Text(fmtDur(s.timeS)).bold()
+                pair("深度", String(format: "%.1fm", s.depthM), Theme.depth)
+                pair("x̄", String(format: "%.1fm", runningAvg[i]), Theme.ink)
+                pair("温", String(format: "%.0f°", s.tempC), Theme.temp)
+                if let bar = s.tank1Bar { pair("压", String(format: "%.0fbar", bar), Theme.pressure) }
+                pair("NDL", "\(s.ndlMin)'", Theme.ndl)
+            }
+            .font(.system(size: 11, design: .monospaced))
+            .foregroundStyle(Theme.ink)
+        } else {
+            HStack(spacing: 10) {
+                Text("触摸曲线查看逐点数据").font(.system(size: 10)).foregroundStyle(Theme.faint)
+                Spacer()
+                if let first = pressures.first, let last = pressures.last {
+                    Text(String(format: "气压 %.0f → %.0f bar", first.bar, last.bar))
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(Theme.pressure)
+                }
+            }
+        }
+    }
+
+    private func pair(_ k: String, _ v: String, _ color: Color) -> some View {
+        HStack(spacing: 3) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(k).foregroundStyle(Theme.muted)
+            Text(v)
+        }
+    }
+
     private var violationSeries: [Int: Int] {
         var out: [Int: Int] = [:]
         var group = 0
@@ -153,35 +239,4 @@ struct DiveProfileChart: View {
     }
 
     private var violationSegments: [Int] { violationSeries.keys.sorted() }
-
-    private func scrubReadout(_ s: DiveSample, avg: Double) -> some View {
-        HStack(spacing: 10) {
-            Text(fmtDur(s.timeS)).bold()
-            Label2("深度", "\(s.depthM, sig: 1)m", Theme.depth)
-            Label2("x̄", "\(avg, sig: 1)m", Theme.ink)
-            Label2("水温", "\(s.tempC, sig: 0)°", Theme.temp)
-            Label2("NDL", "\(s.ndlMin)'", Theme.ndl)
-            if s.cns > 0 { Label2("CNS", "\(s.cns)%", Theme.muted) }
-        }
-        .font(.system(size: 11, design: .monospaced))
-        .foregroundStyle(Theme.ink)
-    }
-}
-
-private struct Label2: View {
-    let k: String, v: String, color: Color
-    init(_ k: String, _ v: String, _ color: Color) { self.k = k; self.v = v; self.color = color }
-    var body: some View {
-        HStack(spacing: 3) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text(k).foregroundStyle(Theme.muted)
-            Text(v)
-        }
-    }
-}
-
-extension String.StringInterpolation {
-    mutating func appendInterpolation(_ value: Double, sig: Int) {
-        appendLiteral(String(format: "%.\(sig)f", value))
-    }
 }

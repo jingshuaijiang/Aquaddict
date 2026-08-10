@@ -96,6 +96,15 @@ public enum PNFParser {
             if temp < 0 { temp = min(temp + 102, 0) }   // libdivecomputer negative-temp fix
             let tempC = imperial ? (Double(temp) - 32.0) * 5.0 / 9.0 : Double(temp)
 
+            // AI tank pressure (logversion >= 7): u16s at record bytes 28 / 20.
+            // >= 0xFFF0 are status codes; low 12 bits are pressure in 2-psi units.
+            func tankBar(_ off: Int) -> Double? {
+                guard logVersion >= 7 else { return nil }
+                let v = be16(r, off)
+                guard v < 0xFFF0, v & 0x0FFF != 0 else { return nil }
+                return Double(v & 0x0FFF) * 2.0 / 14.5037738
+            }
+
             samples.append(DiveSample(
                 timeS: tMs / 1000,
                 depthM: (depthM * 100).rounded() / 100,
@@ -106,7 +115,9 @@ public enum PNFParser {
                 avgPPO2: Double(r[7]) / 100.0,
                 o2: Int(r[8]),
                 he: Int(r[9]),
-                cns: Int(r[23])
+                cns: Int(r[23]),
+                tank1Bar: tankBar(28),
+                tank2Bar: tankBar(20)
             ))
         }
         return (header, samples)

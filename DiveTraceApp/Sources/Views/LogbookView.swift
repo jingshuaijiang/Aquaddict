@@ -70,7 +70,7 @@ struct LogbookView: View {
                         .font(.system(size: 22, weight: .bold, design: .monospaced))
                 }
             }
-            DiveProfileChart(dive: dive)
+            DiveProfileChart(dive: dive, height: 240)
             Button {
                 showDownload = true
             } label: {
