@@ -9,6 +9,7 @@ struct MapTabView: View {
     @State private var selectedSite: DiveSite?
     @State private var draftCoordinate: CLLocationCoordinate2D?
     @State private var draftName = ""
+    @State private var showDiscover = false
 
     private var gnssDives: [Dive] {
         store.dives.filter { $0.header.entryLocation != nil }
@@ -90,6 +91,19 @@ struct MapTabView: View {
             .overlay(alignment: .bottom) { hint }
             .navigationTitle(loc("潜水地图", "Dive Map"))
             .toolbarBackground(Theme.abyss, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showDiscover = true
+                    } label: {
+                        Label(loc("发现潜点", "Discover"),
+                              systemImage: "sparkle.magnifyingglass")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .tint(Theme.accent)
+                }
+            }
+            .sheet(isPresented: $showDiscover) { DiscoverSitesSheet() }
             .sheet(item: $selectedDive) { dive in
                 NavigationStack { DiveDetailView(dive: dive) }
                     .presentationDetents([.large])
