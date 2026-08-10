@@ -291,36 +291,45 @@ struct DiveProfileChart: View {
 }
 
 
-// Landscape-friendly fullscreen chart: rotate the phone for the wide view.
+// Fullscreen chart, always landscape: in portrait the content is rotated
+// 90° so the long axis of the dive is on the long axis of the screen.
 struct FullscreenChartView: View {
     let dive: Dive
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         GeometryReader { geo in
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text(loc("潜水", "Dive") + " #\(dive.n) · \(dive.dayText)")
-                        .font(.system(size: 14, weight: .bold))
-                    Spacer()
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Theme.ink)
-                            .padding(9)
-                            .background(Theme.panel2, in: Circle())
+            let portrait = geo.size.height > geo.size.width
+            let w = max(geo.size.width, geo.size.height)
+            let h = min(geo.size.width, geo.size.height)
+            ZStack {
+                Theme.abyss.ignoresSafeArea()
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text(loc("潜水", "Dive") + " #\(dive.n) · \(dive.dayText)")
+                            .font(.system(size: 14, weight: .bold))
+                        Spacer()
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Theme.ink)
+                                .padding(9)
+                                .background(Theme.panel2, in: Circle())
+                        }
                     }
+                    DiveProfileChart(dive: dive, height: h - 150, isFullscreen: true)
+                    Spacer(minLength: 0)
                 }
-                DiveProfileChart(dive: dive,
-                                 height: geo.size.height - 110,
-                                 isFullscreen: true)
-                Spacer(minLength: 0)
+                .padding(EdgeInsets(top: 16, leading: 44, bottom: 16, trailing: 44))
+                .frame(width: w, height: h)
+                .rotationEffect(portrait ? .degrees(90) : .zero)
             }
-            .padding(16)
+            .frame(width: geo.size.width, height: geo.size.height)
         }
         .background(Theme.abyss)
         .foregroundStyle(Theme.ink)
+        .statusBarHidden()
     }
 }
