@@ -78,6 +78,7 @@ def parse_pnf(raw):
         ndl_min = rec[10]                 # no-deco limit, minutes
         avg_ppo2 = rec[7] / 100.0
         o2, he = rec[8], rec[9]
+        cns = rec[23]                     # CNS %, byte offset+pnf+22
 
         s = {
             "time_s": t_ms // 1000,
@@ -89,6 +90,7 @@ def parse_pnf(raw):
             "avg_ppo2": avg_ppo2,
             "o2": o2,
             "he": he,
+            "cns": cns,
         }
 
         # Tank pressure (AI transmitters), logversion >= 7: u16 at offsets 28 and 20
@@ -100,11 +102,23 @@ def parse_pnf(raw):
 
         samples.append(s)
 
+    # Header fields (offsets per libdivecomputer shearwater_predator_parser.c, PNF)
+    DECO_MODELS = {0: "GF", 1: "VPM-B", 2: "VPM-B/GFS", 3: "DCIEM"}
+    DIVE_MODES = {0: "CC", 1: "OC Tec", 2: "Gauge", 3: "PPO2", 4: "SC",
+                  5: "CC2", 6: "OC Rec", 7: "Freedive", 12: "Avelo"}
+    decomodel_raw = opening[2][18] if 2 in opening else 0
     header = {
         "imperial": imperial,
         "logversion": logversion,
         "interval_ms": interval_ms,
         "n_samples": len(samples),
+        "gf_low": opening[0][4],
+        "gf_high": opening[0][5],
+        "decomodel": DECO_MODELS.get(decomodel_raw, str(decomodel_raw)),
+        "vpmb_conservatism": opening[2][19] if decomodel_raw in (1, 2) else None,
+        "surface_mbar": be16(opening[1], 16),
+        "density": be16(opening[3], 3),          # 1000 = fresh water
+        "mode": DIVE_MODES.get(opening[4][1], "?") if (logversion >= 8 and 4 in opening) else "?",
     }
     return header, samples
 
