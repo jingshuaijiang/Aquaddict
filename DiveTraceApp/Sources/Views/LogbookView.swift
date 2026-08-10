@@ -9,6 +9,7 @@ struct LogbookView: View {
     @State private var selecting = false
     @State private var selected: Set<UInt32> = []
     @State private var showBatchAssign = false
+    @State private var reviewYear: Int?
 
     var body: some View {
         NavigationStack {
@@ -23,6 +24,7 @@ struct LogbookView: View {
                             }
                             .buttonStyle(.plain)
                         }
+                        yearReviewCard
                         listHeader
                         ForEach(store.dives.reversed()) { dive in
                             if selecting {
@@ -65,6 +67,9 @@ struct LogbookView: View {
                     selecting = false
                     selected = []
                 }
+            }
+            .fullScreenCover(item: $reviewYear) { year in
+                YearReviewView(year: year)
             }
             .overlay(alignment: .bottom) {
                 if selecting {
@@ -166,6 +171,38 @@ struct LogbookView: View {
             Image(systemName: "chevron.right").foregroundStyle(Theme.faint)
         }
         .cardStyle()
+    }
+
+    @ViewBuilder
+    private var yearReviewCard: some View {
+        let years = YearStats.availableYears(dives: store.dives)
+        if let latest = years.first {
+            HStack(spacing: 14) {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(Theme.accent)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(loc("\(latest) 年度潜水回顾", "\(String(latest)) Year in Review"))
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(loc("你的一年，做成了故事", "Your year, told as a story"))
+                        .font(.system(size: 11)).foregroundStyle(Theme.muted)
+                }
+                Spacer()
+                if years.count > 1 {
+                    Menu {
+                        ForEach(years, id: \.self) { y in
+                            Button(String(y)) { reviewYear = y }
+                        }
+                    } label: {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .foregroundStyle(Theme.faint)
+                    }
+                }
+                Image(systemName: "chevron.right").foregroundStyle(Theme.faint)
+            }
+            .cardStyle()
+            .contentShape(Rectangle())
+            .onTapGesture { reviewYear = latest }
+        }
     }
 
     private var listHeader: some View {
