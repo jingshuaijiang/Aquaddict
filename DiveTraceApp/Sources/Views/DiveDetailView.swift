@@ -117,11 +117,13 @@ struct DiveDetailView: View {
            last.0 > first.0, first.1 > last.1 {
             let minutes = Double(last.0 - first.0) / 60.0
             let avgAta = 1.0 + dive.avgDepth / 10.0
-            let sacL = (first.1 - last.1) / minutes / avgAta * 11.1
+            let sacBar = (first.1 - last.1) / minutes / avgAta
+            let rmvL = sacBar * 11.1
             kv(loc("气瓶压力", "Tank pressure"),
                "\(U.pressure(first.1)) → \(U.pressure(last.1))", color: Theme.pressure)
-            kv(loc("SAC 气耗", "SAC"), U.sac(sacL) + loc(" @11.1L 瓶", " @AL80"),
-               color: sacL <= 18 ? Theme.good : Theme.ink)
+            kv("SAC", U.sacPressure(sacBar), color: Theme.pressure)
+            kv("RMV", U.rmv(rmvL) + loc(" @11.1L 瓶", " @AL80"),
+               color: rmvL <= 18 ? Theme.good : Theme.ink)
         }
     }
 

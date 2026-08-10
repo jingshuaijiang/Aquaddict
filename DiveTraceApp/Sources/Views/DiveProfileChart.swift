@@ -36,8 +36,8 @@ struct DiveProfileChart: View {
         dive.samples.compactMap { s in s.tank1Bar.map { (s.timeS, $0) } }
     }
 
-    /// Instantaneous surface air consumption (L/min, 11.1 L tank), from the
-    /// tank pressure slope over a ~90 s rolling window, depth-normalized.
+    /// Instantaneous SAC as Shearwater defines it — surface-normalized tank
+    /// pressure rate (bar/min), from a ~90 s rolling window.
     private var sacSeries: [(t: Int, sac: Double)] {
         let ps = dive.samples.enumerated().compactMap { i, s in
             s.tank1Bar.map { (i: i, t: s.timeS, bar: $0) }
@@ -51,7 +51,7 @@ struct DiveProfileChart: View {
             let dtMin = Double(b.t - a.t) / 60.0
             guard dtMin > 0 else { continue }
             let ata = 1.0 + dive.samples[(a.i + b.i) / 2].depthM / 10.0
-            out.append((b.t, max(0, (a.bar - b.bar) / dtMin / ata * 11.1)))
+            out.append((b.t, max(0, (a.bar - b.bar) / dtMin / ata)))
         }
         return out
     }
@@ -60,7 +60,7 @@ struct DiveProfileChart: View {
         guard let f = pressures.first, let l = pressures.last,
               l.t > f.t, f.bar > l.bar else { return nil }
         let ata = 1.0 + dive.avgDepth / 10.0
-        return (f.bar - l.bar) / (Double(l.t - f.t) / 60.0) / ata * 11.1
+        return (f.bar - l.bar) / (Double(l.t - f.t) / 60.0) / ata
     }
 
     // normalize a value into a horizontal band of the depth axis
@@ -242,7 +242,7 @@ struct DiveProfileChart: View {
                 pair("x̄", U.depth(runningAvg[i]), Theme.ink)
                 pair(loc("温", "T"), U.temp(s.tempC), Theme.temp)
                 if let sac = sacSeries.last(where: { $0.t <= s.timeS })?.sac {
-                    pair("SAC", U.sac(sac), Theme.pressure)
+                    pair("SAC", U.sacPressure(sac), Theme.pressure)
                 }
                 if let bar = s.tank1Bar { pair(loc("压", "P"), U.pressure(bar), Theme.pressure) }
                 pair("NDL", "\(s.ndlMin)'", Theme.ndl)
@@ -254,7 +254,7 @@ struct DiveProfileChart: View {
                 Text(loc("触摸曲线查看逐点数据", "Touch the curve for point data")).font(.system(size: 10)).foregroundStyle(Theme.faint)
                 Spacer()
                 if let sac = avgSAC {
-                    Text(loc("SAC 平均 ", "avg SAC ") + U.sac(sac))
+                    Text(loc("SAC 平均 ", "avg SAC ") + U.sacPressure(sac))
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(Theme.pressure)
                 }

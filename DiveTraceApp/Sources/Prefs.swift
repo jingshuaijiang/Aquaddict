@@ -63,8 +63,14 @@ enum U {
     static func rate(_ mPerMin: Double) -> String {
         String(format: "%.1f %@", imperial ? mPerMin * ftPerM : mPerMin, rateUnit)
     }
-    static func sac(_ lPerMin: Double) -> String {
+    /// Volume rate (RMV in Shearwater terms) — needs a tank size.
+    static func rmv(_ lPerMin: Double) -> String {
         imperial ? String(format: "%.2f ft³/min", lPerMin * cuftPerL)
                  : String(format: "%.1f L/min", lPerMin)
+    }
+    /// Pressure rate (SAC in Shearwater terms) — straight from the transmitter.
+    static func sacPressure(_ barPerMin: Double) -> String {
+        imperial ? String(format: "%.0f psi/min", barPerMin * psiPerBar)
+                 : String(format: "%.2f bar/min", barPerMin)
     }
 }
