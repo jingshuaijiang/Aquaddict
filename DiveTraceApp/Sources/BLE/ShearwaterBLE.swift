@@ -52,9 +52,12 @@ final class BLEManager: NSObject {
 
     func startScan() {
         devices = []
-        guard central.state == .poweredOn else { return }
         isScanning = true
-        central.scanForPeripherals(withServices: [ShearwaterGATT.service])
+        guard central.state == .poweredOn else { return }
+        // Scan unfiltered: Shearwater computers don't reliably include the
+        // vendor service UUID in their advertisement packets.
+        central.scanForPeripherals(withServices: nil,
+                                   options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
     }
 
     func stopScan() {
@@ -82,14 +85,23 @@ extension BLEManager: @preconcurrency CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         bluetoothOff = central.state != .poweredOn
         if central.state == .poweredOn, isScanning {
-            central.scanForPeripherals(withServices: [ShearwaterGATT.service])
+            central.scanForPeripherals(withServices: nil,
+                                       options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
         }
     }
+
+    private static let knownNames = ["perdix", "peregrine", "petrel", "teric",
+                                     "tern", "nerd", "predator", "shearwater"]
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                         advertisementData: [String: Any], rssi RSSI: NSNumber) {
         let name = (advertisementData[CBAdvertisementDataLocalNameKey] as? String)
-            ?? peripheral.name ?? "Shearwater"
+            ?? peripheral.name ?? ""
+        let advertised = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] ?? []
+        let lower = name.lowercased()
+        // Keep only Shearwater computers: match by name, or by advertised service.
+        guard Self.knownNames.contains(where: lower.contains)
+            || advertised.contains(ShearwaterGATT.service) else { return }
         let device = DiscoveredDevice(peripheral: peripheral, name: name, rssi: RSSI.intValue)
         if let idx = devices.firstIndex(where: { $0.id == device.id }) {
             devices[idx] = device

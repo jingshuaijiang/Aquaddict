@@ -29,8 +29,11 @@ public actor ShearwaterSession {
 
     public init(transport: any ShearwaterTransport, model: ShearwaterModel?, mtu: Int = 20) {
         self.transport = transport
-        self.v2 = model?.usesV2 ?? false
-        self.mtu = mtu
+        let v2 = model?.usesV2 ?? false
+        self.v2 = v2
+        // V1 devices expect exactly 20-byte BLE chunks (libdivecomputer BLE_MTU_MIN);
+        // only the V2 protocol handles larger writes.
+        self.mtu = v2 ? min(max(mtu, 20), 514) : 20
     }
 
     // MARK: transfer

@@ -22,7 +22,16 @@ public enum SLIP {
         }
         stuffed.append(end)
 
-        guard v1Header else { return [stuffed] }
+        guard v1Header else {
+            // V2: no chunk header, but still split to the link's write size
+            var out: [Data] = []
+            var offset = 0
+            while offset < stuffed.count {
+                out.append(stuffed.subdata(in: offset ..< min(offset + mtu, stuffed.count)))
+                offset += mtu
+            }
+            return out
+        }
 
         let body = mtu - 2
         let frames = (stuffed.count + body - 1) / body
