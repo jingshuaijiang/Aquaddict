@@ -4,6 +4,7 @@ import DiveKit
 // "Dive Wrapped" — fullscreen swipeable story cards for a year of diving.
 struct YearReviewView: View {
     let year: Int
+    var autoPresented = false
     @Environment(\.dismiss) private var dismiss
     @Environment(DiveStore.self) private var store
     @State private var stats: YearStats?
@@ -32,6 +33,20 @@ struct YearReviewView: View {
                     .background(.ultraThinMaterial, in: Circle())
             }
             .padding(16)
+        }
+        .overlay(alignment: .bottom) {
+            if autoPresented {
+                Button {
+                    dismiss()
+                } label: {
+                    Text(loc("跳过，直接进入 →", "Skip to the app →"))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.muted)
+                        .padding(.horizontal, 18).padding(.vertical, 9)
+                        .background(.ultraThinMaterial, in: Capsule())
+                }
+                .padding(.bottom, 44)
+            }
         }
         .task {
             stats = YearStats.compute(year: year, dives: store.dives,

@@ -16,6 +16,9 @@ struct DiveTraceApp: App {
 
 struct RootView: View {
     @Environment(DiveStore.self) private var store
+    // year for which the annual recap was already offered (0 = never)
+    @AppStorage("reviewOfferedForYear") private var reviewOfferedForYear = 0
+    @State private var autoReviewYear: Int?
 
     var body: some View {
         TabView {
@@ -24,7 +27,20 @@ struct RootView: View {
             MapTabView()
                 .tabItem { Label(loc("地图", "Map"), systemImage: "mappin.and.ellipse") }
         }
-        .task { store.load() }
+        .task {
+            store.load()
+            // first launch of a new year: replay last year's diving before the app
+            let year = Calendar.current.component(.year, from: Date())
+            let lastYear = year - 1
+            if reviewOfferedForYear < year,
+               YearStats.availableYears(dives: store.dives).contains(lastYear) {
+                reviewOfferedForYear = year
+                autoReviewYear = lastYear
+            }
+        }
+        .fullScreenCover(item: $autoReviewYear) { y in
+            YearReviewView(year: y, autoPresented: true)
+        }
     }
 }
 
