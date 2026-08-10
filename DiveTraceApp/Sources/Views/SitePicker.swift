@@ -1,4 +1,5 @@
 import SwiftUI
+import MapKit
 import DiveKit
 
 // Assign one or many dives to a site: pick from the library or create inline.
@@ -11,10 +12,58 @@ struct SitePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var siteStore = SiteStore.shared
     @State private var newName = ""
+    @State private var nearby: [SiteCandidate]? = nil
+    @State private var searching = false
+
+    private var searchCenter: GeoPoint? {
+        dives.compactMap { $0.header.entryLocation }.first
+    }
 
     var body: some View {
         NavigationStack {
             List {
+                if searchCenter != nil {
+                    Section(loc("附近潜点", "NEARBY SITES")) {
+                        if searching {
+                            HStack(spacing: 8) {
+                                ProgressView().tint(Theme.accent)
+                                Text(loc("搜索 Apple 地图 + OpenStreetMap…",
+                                         "Searching Apple Maps + OpenStreetMap…"))
+                                    .font(.system(size: 12)).foregroundStyle(Theme.muted)
+                            }
+                        } else if let nearby, nearby.isEmpty {
+                            Text(loc("5 公里内没搜到已知潜点", "No known sites within 5 km"))
+                                .font(.system(size: 12)).foregroundStyle(Theme.faint)
+                        } else if let nearby {
+                            ForEach(nearby) { candidate in
+                                Button {
+                                    adopt(candidate)
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "sparkle")
+                                            .foregroundStyle(Theme.accent)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(candidate.name)
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .foregroundStyle(Theme.ink)
+                                            Text(String(format: loc("距离 %.0f m", "%.0f m away"),
+                                                        candidate.distanceM)
+                                                 + " · \(candidate.source)")
+                                                .font(.system(size: 11))
+                                                .foregroundStyle(Theme.muted)
+                                        }
+                                        Spacer()
+                                        Text(loc("建立并关联", "Adopt"))
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundStyle(Theme.accent)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .listRowBackground(Theme.panel)
+                }
+
                 Section {
                     HStack {
                         TextField(loc("新潜点名称…", "New site name…"), text: $newName)
@@ -82,6 +131,23 @@ struct SitePickerSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .task {
+            guard let center = searchCenter, nearby == nil else { return }
+            searching = true
+            nearby = await NearbySites.searchCandidates(
+                near: CLLocationCoordinate2D(latitude: center.latitude,
+                                             longitude: center.longitude))
+            searching = false
+        }
+    }
+
+    private func adopt(_ candidate: SiteCandidate) {
+        let site = siteStore.sites.first { $0.name == candidate.name }
+            ?? siteStore.createSite(name: candidate.name,
+                                    latitude: candidate.coordinate.latitude,
+                                    longitude: candidate.coordinate.longitude)
+        siteStore.assign(dives.map(\.id), to: site.id)
+        finish()
     }
 
     private func create() {
