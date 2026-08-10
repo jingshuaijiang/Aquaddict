@@ -24,6 +24,8 @@ struct DiveDetailView: View {
                 sectionTitle(loc("潜点 · 笔记", "Site · Notes"))
                 siteRow
                 locationSection
+                sectionTitle(loc("照片", "Photos"))
+                DivePhotosSection(diveID: dive.id)
                 placeholder
             }
             .padding(.horizontal, 16)

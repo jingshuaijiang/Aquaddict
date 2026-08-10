@@ -22,6 +22,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Aquaddict
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIUserInterfaceStyle: Dark
+        INFOPLIST_KEY_NSCameraUsageDescription: "拍摄潜水照片 / Take photos for your dive log"
         INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "连接 Shearwater 潜水电脑下载潜水日志 / Connects to your Shearwater dive computer to download dive logs"
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
