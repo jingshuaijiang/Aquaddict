@@ -192,6 +192,7 @@ struct DiveDetailView: View {
                 Spacer()
                 Image(systemName: "chevron.right").foregroundStyle(Theme.faint)
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .cardStyle()
@@ -219,6 +220,7 @@ struct DiveDetailView: View {
                 Spacer()
                 Image(systemName: "chevron.right").foregroundStyle(Theme.faint)
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .cardStyle()

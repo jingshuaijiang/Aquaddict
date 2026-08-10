@@ -7,6 +7,7 @@ struct BuddyPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var buddyStore = BuddyStore.shared
     @State private var newName = ""
+    @State private var showContacts = false
 
     private var current: [String] { buddyStore.buddies(for: diveID) }
 
@@ -25,6 +26,13 @@ struct BuddyPickerSheet: View {
                         .buttonStyle(.borderedProminent)
                         .tint(Theme.accent)
                         .foregroundStyle(Theme.abyss)
+                    }
+                    Button {
+                        showContacts = true
+                    } label: {
+                        Label(loc("从通讯录选择", "Pick from Contacts"),
+                              systemImage: "person.crop.circle.badge.plus")
+                            .foregroundStyle(Theme.accent)
                     }
                 }
                 .listRowBackground(Theme.panel)
@@ -61,5 +69,12 @@ struct BuddyPickerSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .sheet(isPresented: $showContacts) {
+            ContactPicker { names in
+                for n in names { buddyStore.add(n, for: diveID) }
+                showContacts = false
+            }
+            .ignoresSafeArea()
+        }
     }
 }
