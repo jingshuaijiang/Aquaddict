@@ -1,0 +1,425 @@
+[
+ {
+  "n": 0,
+  "maxDepth": 83.33,
+  "nSamples": 103,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1013
+ },
+ {
+  "n": 1,
+  "maxDepth": 30.0,
+  "nSamples": 184,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1010
+ },
+ {
+  "n": 2,
+  "maxDepth": 16.8,
+  "nSamples": 223,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1009
+ },
+ {
+  "n": 3,
+  "maxDepth": 6.6,
+  "nSamples": 126,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1012
+ },
+ {
+  "n": 4,
+  "maxDepth": 2.5,
+  "nSamples": 20,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1012
+ },
+ {
+  "n": 5,
+  "maxDepth": 2.5,
+  "nSamples": 12,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1012
+ },
+ {
+  "n": 6,
+  "maxDepth": 3.0,
+  "nSamples": 25,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1012
+ },
+ {
+  "n": 7,
+  "maxDepth": 3.0,
+  "nSamples": 29,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1012
+ },
+ {
+  "n": 8,
+  "maxDepth": 2.7,
+  "nSamples": 28,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1012
+ },
+ {
+  "n": 9,
+  "maxDepth": 7.3,
+  "nSamples": 195,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1009
+ },
+ {
+  "n": 10,
+  "maxDepth": 2.3,
+  "nSamples": 16,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1002
+ },
+ {
+  "n": 11,
+  "maxDepth": 2.5,
+  "nSamples": 21,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1002
+ },
+ {
+  "n": 12,
+  "maxDepth": 2.2,
+  "nSamples": 9,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1002
+ },
+ {
+  "n": 13,
+  "maxDepth": 2.6,
+  "nSamples": 27,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1002
+ },
+ {
+  "n": 14,
+  "maxDepth": 2.9,
+  "nSamples": 54,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1002
+ },
+ {
+  "n": 15,
+  "maxDepth": 3.0,
+  "nSamples": 29,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1002
+ },
+ {
+  "n": 16,
+  "maxDepth": 15.2,
+  "nSamples": 65,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1003
+ },
+ {
+  "n": 17,
+  "maxDepth": 13.4,
+  "nSamples": 171,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1003
+ },
+ {
+  "n": 18,
+  "maxDepth": 24.9,
+  "nSamples": 97,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1001
+ },
+ {
+  "n": 19,
+  "maxDepth": 5.6,
+  "nSamples": 37,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1001
+ },
+ {
+  "n": 20,
+  "maxDepth": 21.6,
+  "nSamples": 223,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1012
+ },
+ {
+  "n": 21,
+  "maxDepth": 14.0,
+  "nSamples": 314,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1012
+ },
+ {
+  "n": 22,
+  "maxDepth": 18.8,
+  "nSamples": 242,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1012
+ },
+ {
+  "n": 23,
+  "maxDepth": 15.7,
+  "nSamples": 277,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1011
+ },
+ {
+  "n": 24,
+  "maxDepth": 5.3,
+  "nSamples": 22,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1011
+ },
+ {
+  "n": 25,
+  "maxDepth": 16.2,
+  "nSamples": 275,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1011
+ },
+ {
+  "n": 26,
+  "maxDepth": 18.4,
+  "nSamples": 303,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1008
+ },
+ {
+  "n": 27,
+  "maxDepth": 2.3,
+  "nSamples": 15,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1009
+ },
+ {
+  "n": 28,
+  "maxDepth": 2.8,
+  "nSamples": 60,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1009
+ },
+ {
+  "n": 29,
+  "maxDepth": 4.2,
+  "nSamples": 80,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1009
+ },
+ {
+  "n": 30,
+  "maxDepth": 5.6,
+  "nSamples": 112,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1009
+ },
+ {
+  "n": 31,
+  "maxDepth": 31.6,
+  "nSamples": 125,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1014
+ },
+ {
+  "n": 32,
+  "maxDepth": 11.7,
+  "nSamples": 264,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1014
+ },
+ {
+  "n": 33,
+  "maxDepth": 11.6,
+  "nSamples": 296,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1013
+ },
+ {
+  "n": 34,
+  "maxDepth": 13.9,
+  "nSamples": 237,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1012
+ },
+ {
+  "n": 35,
+  "maxDepth": 11.0,
+  "nSamples": 249,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1011
+ },
+ {
+  "n": 36,
+  "maxDepth": 10.2,
+  "nSamples": 24,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1013
+ },
+ {
+  "n": 37,
+  "maxDepth": 17.6,
+  "nSamples": 180,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1013
+ },
+ {
+  "n": 38,
+  "maxDepth": 13.72,
+  "nSamples": 121,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1016
+ },
+ {
+  "n": 39,
+  "maxDepth": 13.17,
+  "nSamples": 142,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1016
+ },
+ {
+  "n": 40,
+  "maxDepth": 4.08,
+  "nSamples": 48,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1016
+ },
+ {
+  "n": 41,
+  "maxDepth": 3.75,
+  "nSamples": 30,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1016
+ },
+ {
+  "n": 42,
+  "maxDepth": 4.36,
+  "nSamples": 27,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1016
+ },
+ {
+  "n": 43,
+  "maxDepth": 3.44,
+  "nSamples": 23,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1016
+ },
+ {
+  "n": 44,
+  "maxDepth": 8.69,
+  "nSamples": 63,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1015
+ },
+ {
+  "n": 45,
+  "maxDepth": 3.84,
+  "nSamples": 20,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1015
+ },
+ {
+  "n": 46,
+  "maxDepth": 13.96,
+  "nSamples": 303,
+  "gfLow": 40,
+  "gfHigh": 85,
+  "mode": "OC Rec",
+  "surfaceMbar": 1015
+ }
+]
