@@ -76,7 +76,8 @@ struct DiscoverSitesSheet: View {
                                             .font(.system(size: 14, weight: .semibold))
                                             .foregroundStyle(Theme.ink)
                                         Text(String(format: loc("距离 %.0f m", "%.0f m away"),
-                                                    candidate.distanceM))
+                                                    candidate.distanceM)
+                                             + " · \(candidate.source)")
                                             .font(.system(size: 11))
                                             .foregroundStyle(Theme.muted)
                                     }
