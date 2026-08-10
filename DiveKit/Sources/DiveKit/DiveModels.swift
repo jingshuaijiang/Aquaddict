@@ -57,6 +57,9 @@ public struct DiveHeader: Codable, Sendable, Equatable {
     public let surfaceMbar: Int
     public let waterDensity: Int   // 1000 = fresh water
     public let mode: DiveMode
+    /// Dive start, as the device's local wall-clock time encoded as a Unix
+    /// timestamp (i.e. interpret in UTC to get the wall-clock fields back).
+    public let startTimestamp: UInt32
 }
 
 public struct DiveSample: Codable, Sendable, Equatable {

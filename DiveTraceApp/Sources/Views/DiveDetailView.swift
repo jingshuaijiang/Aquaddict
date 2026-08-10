@@ -29,8 +29,7 @@ struct DiveDetailView: View {
     }
 
     private var header: some View {
-        Text(dive.date.formatted(date: .long, time: .shortened) +
-             " · \(dive.header.mode.rawValue) · GF \(dive.header.gfLow)/\(dive.header.gfHigh)")
+        Text(dive.dateText + " · \(dive.header.mode.rawValue) · GF \(dive.header.gfLow)/\(dive.header.gfHigh)")
             .font(.system(size: 12)).foregroundStyle(Theme.muted)
     }
 

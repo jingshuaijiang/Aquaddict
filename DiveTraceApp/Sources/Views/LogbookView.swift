@@ -53,7 +53,7 @@ struct LogbookView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("上一潜 · #\(dive.n) · \(dive.date.formatted(date: .abbreviated, time: .omitted))")
+                    Text("上一潜 · #\(dive.n) · \(dive.dayText)")
                         .font(.system(size: 10, weight: .semibold)).kerning(1.5)
                         .foregroundStyle(Theme.muted)
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -131,8 +131,7 @@ struct DiveRow: View {
                                 .stroke(Theme.accent.opacity(0.4), lineWidth: 1))
                     }
                 }
-                Text(dive.date.formatted(date: .numeric, time: .shortened) +
-                     String(format: " · %.0f–%.0f°C", dive.tempMin, dive.tempMax))
+                Text(dive.dateText + String(format: " · %.0f–%.0f°C", dive.tempMin, dive.tempMax))
                     .font(.system(size: 11)).foregroundStyle(Theme.muted)
             }
             Spacer()

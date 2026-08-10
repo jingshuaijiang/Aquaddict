@@ -1,10 +1,12 @@
 import SwiftUI
+import DiveKit
 
-// Device picker + download flow. BLE transport lands next milestone; the sheet
-// is fully wired to a simulated connection so the UX is testable today.
+// Real device picker + download flow over CoreBluetooth.
 struct DownloadSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var progress: String?
+    @Environment(DiveStore.self) private var store
+    @State private var ble = BLEManager()
+    @State private var manager = DownloadManager()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -15,29 +17,41 @@ struct DownloadSheet: View {
              + Text(" 模式（Menu → Bluetooth），它就会出现在这里"))
                 .font(.system(size: 12)).foregroundStyle(Theme.muted)
 
-            label("我的设备")
-            deviceRow(name: "Peregrine", serial: "9D8ACD80",
-                      status: "信号 ▂▄▆ · 上次同步 今天", enabled: true)
-            deviceRow(name: "Perdix 3", serial: "E7A2C415",
-                      status: "未检测到 — 请打开电脑蓝牙", enabled: false)
+            if ble.bluetoothOff {
+                Label("蓝牙已关闭 — 请在设置里打开", systemImage: "exclamationmark.triangle")
+                    .font(.system(size: 12)).foregroundStyle(Theme.danger)
+            }
 
-            label("附近的新设备")
-            Text("扫描中… 新的 Shearwater 出现后点击即可配对\n同一潜水如被两台电脑同时记录，会自动识别合并")
-                .font(.system(size: 11)).foregroundStyle(Theme.faint)
-                .frame(maxWidth: .infinity).padding(12)
+            label("附近的 Shearwater")
+            if ble.devices.isEmpty {
+                HStack(spacing: 8) {
+                    ProgressView().tint(Theme.accent)
+                    Text("扫描中…").font(.system(size: 12)).foregroundStyle(Theme.faint)
+                }
+                .frame(maxWidth: .infinity).padding(16)
                 .overlay(RoundedRectangle(cornerRadius: 12)
                     .stroke(Theme.line, style: StrokeStyle(lineWidth: 1, dash: [5, 4])))
-
-            if let progress {
-                Text(progress).font(.system(size: 12)).foregroundStyle(Theme.accent)
-                    .frame(maxWidth: .infinity)
             }
+            ForEach(ble.devices) { device in
+                deviceRow(device)
+            }
+
+            phaseView
             Spacer()
         }
         .padding(18)
         .background(Theme.panel2)
         .presentationDetents([.medium])
         .presentationDragIndicator(.hidden)
+        .onAppear { ble.startScan() }
+        .onDisappear { ble.stopScan(); ble.disconnect() }
+    }
+
+    private var busy: Bool {
+        switch manager.phase {
+        case .idle, .done, .failed: false
+        default: true
+        }
     }
 
     private func label(_ t: String) -> some View {
@@ -45,43 +59,69 @@ struct DownloadSheet: View {
             .foregroundStyle(Theme.muted).padding(.top, 4)
     }
 
-    private func deviceRow(name: String, serial: String, status: String, enabled: Bool) -> some View {
+    private func deviceRow(_ device: DiscoveredDevice) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: enabled ? "dot.radiowaves.left.and.right" : "moon.zzz")
-                .foregroundStyle(enabled ? Theme.accent : Theme.faint)
+            Image(systemName: "dot.radiowaves.left.and.right")
+                .foregroundStyle(Theme.accent)
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(name).font(.system(size: 13.5, weight: .semibold))
-                    Text("[\(serial)]").font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(Theme.muted)
-                }
-                Text(status).font(.system(size: 10.5)).foregroundStyle(Theme.muted)
+                Text(device.name).font(.system(size: 13.5, weight: .semibold))
+                Text("信号 \(signalBars(device.rssi)) · \(device.model?.displayName ?? "Shearwater")")
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.muted)
             }
             Spacer()
-            if enabled {
-                Button("下载") { simulate() }
-                    .font(.system(size: 12, weight: .bold))
-                    .padding(.horizontal, 14).padding(.vertical, 6)
-                    .background(Theme.accent, in: Capsule())
-                    .foregroundStyle(Theme.abyss)
+            Button("下载") {
+                Task { await manager.download(from: device, ble: ble, store: store) }
             }
+            .disabled(busy)
+            .font(.system(size: 12, weight: .bold))
+            .padding(.horizontal, 14).padding(.vertical, 6)
+            .background(busy ? Theme.faint : Theme.accent, in: Capsule())
+            .foregroundStyle(Theme.abyss)
         }
         .padding(13)
         .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.line, lineWidth: 1))
-        .opacity(enabled ? 1 : 0.45)
     }
 
-    private func simulate() {
-        let steps = ["连接 Peregrine…", "读取潜水清单 (47 条)…", "对比本地记录…", "已是最新 ✓"]
-        progress = steps[0]
-        for (i, s) in steps.enumerated().dropFirst() {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7 * Double(i)) {
-                progress = s
-                if i == steps.count - 1 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { dismiss() }
-                }
+    private func signalBars(_ rssi: Int) -> String {
+        rssi > -60 ? "▂▄▆" : rssi > -75 ? "▂▄" : "▂"
+    }
+
+    @ViewBuilder
+    private var phaseView: some View {
+        switch manager.phase {
+        case .idle:
+            EmptyView()
+        case .connecting(let name):
+            progressLine("连接 \(name)…")
+        case .readingManifest:
+            progressLine("读取潜水清单…")
+        case .downloading(let current, let total):
+            VStack(spacing: 6) {
+                progressLine("下载潜水 \(current)/\(total)…")
+                ProgressView(value: Double(current), total: Double(max(total, 1)))
+                    .tint(Theme.accent)
             }
+        case .done(let new):
+            Text(new == 0 ? "✓ 已是最新 — 没有新潜水"
+                          : "✓ 下载完成 — \(new) 潜已加入日志本")
+                .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.good)
+                .frame(maxWidth: .infinity)
+                .task {
+                    try? await Task.sleep(nanoseconds: 1_500_000_000)
+                    dismiss()
+                }
+        case .failed(let message):
+            Text("下载失败：\(message)")
+                .font(.system(size: 11)).foregroundStyle(Theme.danger)
         }
+    }
+
+    private func progressLine(_ t: String) -> some View {
+        HStack(spacing: 8) {
+            ProgressView().tint(Theme.accent)
+            Text(t).font(.system(size: 12)).foregroundStyle(Theme.accent)
+        }
+        .frame(maxWidth: .infinity)
     }
 }

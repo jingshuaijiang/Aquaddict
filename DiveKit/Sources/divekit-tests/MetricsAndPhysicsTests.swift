@@ -9,6 +9,7 @@ struct SummaryRow: Decodable {
     let gfHigh: Int
     let mode: String
     let surfaceMbar: Int
+    let startTs: UInt32
 }
 
 func metricsAndPhysicsTests() {
@@ -56,6 +57,7 @@ func metricsAndPhysicsTests() {
             expectEqual(h.gfHigh, row.gfHigh, "dive \(row.n) gfHigh")
             expectEqual(h.mode.rawValue, row.mode, "dive \(row.n) mode")
             expectEqual(h.surfaceMbar, row.surfaceMbar, "dive \(row.n) surfaceMbar")
+            expectEqual(h.startTimestamp, row.startTs, "dive \(row.n) startTimestamp")
         }
     }
 }

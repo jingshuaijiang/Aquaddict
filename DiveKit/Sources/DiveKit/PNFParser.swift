@@ -60,7 +60,9 @@ public enum PNFParser {
             vpmbConservatism: (decoRaw == 1 || decoRaw == 2) ? Int(o2[19]) : nil,
             surfaceMbar: be16(opening[1]!, 16),
             waterDensity: be16(opening[3]!, 3),
-            mode: logVersion >= 8 ? DiveMode(rawByte: o4[1]) : .unknown
+            mode: logVersion >= 8 ? DiveMode(rawByte: o4[1]) : .unknown,
+            startTimestamp: UInt32(o0[12]) << 24 | UInt32(o0[13]) << 16
+                | UInt32(o0[14]) << 8 | UInt32(o0[15])
         )
 
         var samples: [DiveSample] = []
