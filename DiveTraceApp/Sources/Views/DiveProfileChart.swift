@@ -9,12 +9,14 @@ import DiveKit
 struct DiveProfileChart: View {
     let dive: Dive
     var height: CGFloat = 300
+    var isFullscreen = false
 
     @State private var scrubIndex: Int? = nil
     @State private var showTemp = true
     @State private var showAvg = true
     @State private var showNDL = false
-    @State private var showPressure = true
+    @State private var showSAC = true
+    @State private var showFull = false
 
     private var maxDepth: Double { max(dive.maxDepth * 1.05, 1) }
     private var dur: Int { dive.samples.last?.timeS ?? 1 }
@@ -32,6 +34,33 @@ struct DiveProfileChart: View {
 
     private var pressures: [(t: Int, bar: Double)] {
         dive.samples.compactMap { s in s.tank1Bar.map { (s.timeS, $0) } }
+    }
+
+    /// Instantaneous surface air consumption (L/min, 11.1 L tank), from the
+    /// tank pressure slope over a ~90 s rolling window, depth-normalized.
+    private var sacSeries: [(t: Int, sac: Double)] {
+        let ps = dive.samples.enumerated().compactMap { i, s in
+            s.tank1Bar.map { (i: i, t: s.timeS, bar: $0) }
+        }
+        let iv = max(dive.intervalS, 1)
+        let w = max(3, 90 / iv)
+        guard ps.count > w else { return [] }
+        var out: [(Int, Double)] = []
+        for j in w ..< ps.count {
+            let a = ps[j - w], b = ps[j]
+            let dtMin = Double(b.t - a.t) / 60.0
+            guard dtMin > 0 else { continue }
+            let ata = 1.0 + dive.samples[(a.i + b.i) / 2].depthM / 10.0
+            out.append((b.t, max(0, (a.bar - b.bar) / dtMin / ata * 11.1)))
+        }
+        return out
+    }
+
+    private var avgSAC: Double? {
+        guard let f = pressures.first, let l = pressures.last,
+              l.t > f.t, f.bar > l.bar else { return nil }
+        let ata = 1.0 + dive.avgDepth / 10.0
+        return (f.bar - l.bar) / (Double(l.t - f.t) / 60.0) / ata * 11.1
     }
 
     // normalize a value into a horizontal band of the depth axis
@@ -54,7 +83,7 @@ struct DiveProfileChart: View {
                 chip("深度", Theme.depth, .constant(true))
                 chip("平均", Theme.ink, $showAvg)
                 chip("水温", Theme.temp, $showTemp)
-                if hasPressure { chip("气压", Theme.pressure, $showPressure) }
+                if hasPressure { chip("SAC", Theme.pressure, $showSAC) }
                 chip("NDL", Theme.ndl, $showNDL)
             }
         }
@@ -114,13 +143,13 @@ struct DiveProfileChart: View {
                         .lineStyle(StrokeStyle(lineWidth: 1.6))
                 }
             }
-            if showPressure, hasPressure {
-                let bars = pressures.map(\.bar)
-                let lo = bars.min()!, hi = bars.max()!
-                ForEach(pressures, id: \.t) { p in
+            if showSAC, !sacSeries.isEmpty {
+                let vals = sacSeries.map(\.sac)
+                let lo = vals.min()!, hi = max(vals.max()!, lo + 1)
+                ForEach(sacSeries, id: \.t) { p in
                     LineMark(x: .value("t", p.t),
-                             y: .value("d", bandY(p.bar, lo: lo, hi: hi, top: 0.72, bottom: 0.98)),
-                             series: .value("series", "pressure"))
+                             y: .value("d", bandY(p.sac, lo: lo, hi: hi, top: 0.72, bottom: 0.98)),
+                             series: .value("series", "sac"))
                         .foregroundStyle(Theme.pressure)
                         .lineStyle(StrokeStyle(lineWidth: 1.8))
                 }
@@ -184,6 +213,23 @@ struct DiveProfileChart: View {
         }
         .frame(height: height)
         .padding(.leading, -6)   // tuck the narrow axis in tight
+        .overlay(alignment: .topTrailing) {
+            if !isFullscreen {
+                Button {
+                    showFull = true
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.muted)
+                        .padding(7)
+                        .background(Theme.panel2, in: Circle())
+                        .overlay(Circle().stroke(Theme.line, lineWidth: 1))
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showFull) {
+            FullscreenChartView(dive: dive)
+        }
     }
 
     @ViewBuilder
@@ -195,6 +241,9 @@ struct DiveProfileChart: View {
                 pair("深度", String(format: "%.1fm", s.depthM), Theme.depth)
                 pair("x̄", String(format: "%.1fm", runningAvg[i]), Theme.ink)
                 pair("温", String(format: "%.0f°", s.tempC), Theme.temp)
+                if let sac = sacSeries.last(where: { $0.t <= s.timeS })?.sac {
+                    pair("SAC", String(format: "%.1fL/m", sac), Theme.pressure)
+                }
                 if let bar = s.tank1Bar { pair("压", String(format: "%.0fbar", bar), Theme.pressure) }
                 pair("NDL", "\(s.ndlMin)'", Theme.ndl)
             }
@@ -204,8 +253,8 @@ struct DiveProfileChart: View {
             HStack(spacing: 10) {
                 Text("触摸曲线查看逐点数据").font(.system(size: 10)).foregroundStyle(Theme.faint)
                 Spacer()
-                if let first = pressures.first, let last = pressures.last {
-                    Text(String(format: "气压 %.0f → %.0f bar", first.bar, last.bar))
+                if let sac = avgSAC {
+                    Text(String(format: "SAC 平均 %.1f L/min", sac))
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(Theme.pressure)
                 }
@@ -239,4 +288,39 @@ struct DiveProfileChart: View {
     }
 
     private var violationSegments: [Int] { violationSeries.keys.sorted() }
+}
+
+
+// Landscape-friendly fullscreen chart: rotate the phone for the wide view.
+struct FullscreenChartView: View {
+    let dive: Dive
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        GeometryReader { geo in
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("潜水 #\(dive.n) · \(dive.dayText)")
+                        .font(.system(size: 14, weight: .bold))
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Theme.ink)
+                            .padding(9)
+                            .background(Theme.panel2, in: Circle())
+                    }
+                }
+                DiveProfileChart(dive: dive,
+                                 height: geo.size.height - 110,
+                                 isFullscreen: true)
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+        }
+        .background(Theme.abyss)
+        .foregroundStyle(Theme.ink)
+    }
 }
