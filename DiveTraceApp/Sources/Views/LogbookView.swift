@@ -5,6 +5,10 @@ struct LogbookView: View {
     @Environment(DiveStore.self) private var store
     @State private var showDownload = false
     @State private var prefs = Prefs.shared
+    @State private var siteStore = SiteStore.shared
+    @State private var selecting = false
+    @State private var selected: Set<UInt32> = []
+    @State private var showBatchAssign = false
 
     var body: some View {
         NavigationStack {
@@ -21,11 +25,28 @@ struct LogbookView: View {
                         }
                         listHeader
                         ForEach(store.dives.reversed()) { dive in
-                            NavigationLink(destination: DiveDetailView(dive: dive)) {
-                                DiveRow(dive: dive)
+                            if selecting {
+                                Button {
+                                    if selected.contains(dive.id) { selected.remove(dive.id) }
+                                    else { selected.insert(dive.id) }
+                                } label: {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: selected.contains(dive.id)
+                                              ? "checkmark.circle.fill" : "circle")
+                                            .foregroundStyle(selected.contains(dive.id)
+                                                             ? Theme.accent : Theme.faint)
+                                        DiveRow(dive: dive)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                NavigationLink(destination: DiveDetailView(dive: dive)) {
+                                    DiveRow(dive: dive)
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
+                        if selecting { Spacer(minLength: 70) }
                     } else {
                         ContentUnavailableView(
                             loc("连接你的潜水电脑", "Connect your dive computer"),
@@ -39,6 +60,31 @@ struct LogbookView: View {
             }
             .background(Theme.abyss)
             .sheet(isPresented: $showDownload) { DownloadSheet() }
+            .sheet(isPresented: $showBatchAssign) {
+                SitePickerSheet(dives: store.dives.filter { selected.contains($0.id) }) {
+                    selecting = false
+                    selected = []
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if selecting {
+                    HStack(spacing: 12) {
+                        Text("\(selected.count)" + loc(" 潜已选", " selected"))
+                            .font(.system(size: 13)).foregroundStyle(Theme.muted)
+                        Spacer()
+                        Button(loc("关联到潜点", "Assign to site")) {
+                            showBatchAssign = true
+                        }
+                        .disabled(selected.isEmpty)
+                        .font(.system(size: 13, weight: .bold))
+                        .padding(.horizontal, 16).padding(.vertical, 9)
+                        .background(selected.isEmpty ? Theme.faint : Theme.accent, in: Capsule())
+                        .foregroundStyle(Theme.abyss)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 12)
+                    .background(.ultraThinMaterial)
+                }
+            }
         }
     }
 
@@ -125,9 +171,16 @@ struct LogbookView: View {
     private var listHeader: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(loc("日志本", "Logbook")).font(.system(size: 16, weight: .bold))
-            Spacer()
-            Text("\(store.dives.count)" + loc(" 潜", " dives") + " · Peregrine + Perdix 3")
+            Text("\(store.dives.count)" + loc(" 潜", " dives"))
                 .font(.system(size: 11)).foregroundStyle(Theme.muted)
+            Spacer()
+            Button(selecting ? loc("完成", "Done") : loc("选择", "Select")) {
+                selecting.toggle()
+                if !selecting { selected = [] }
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(Theme.accent)
+            .buttonStyle(.plain)
         }
         .padding(.top, 8)
     }

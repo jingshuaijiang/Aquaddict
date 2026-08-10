@@ -4,6 +4,8 @@ import DiveKit
 struct DiveDetailView: View {
     let dive: Dive
     @State private var prefs = Prefs.shared
+    @State private var siteStore = SiteStore.shared
+    @State private var showSitePicker = false
 
     var body: some View {
         ScrollView {
@@ -20,6 +22,7 @@ struct DiveDetailView: View {
                     trainingScores(m)
                 }
                 sectionTitle(loc("潜点 · 笔记", "Site · Notes"))
+                siteRow
                 locationSection
                 placeholder
             }
@@ -168,6 +171,30 @@ struct DiveDetailView: View {
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.line, lineWidth: 1))
     }
 
+    private var siteRow: some View {
+        Button {
+            showSitePicker = true
+        } label: {
+            HStack {
+                Image(systemName: "mappin.circle.fill").foregroundStyle(Theme.accent)
+                if let site = siteStore.site(for: dive.id) {
+                    Text(site.name).font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                } else {
+                    Text(loc("设置潜点…", "Set dive site…"))
+                        .font(.system(size: 14)).foregroundStyle(Theme.muted)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").foregroundStyle(Theme.faint)
+            }
+        }
+        .buttonStyle(.plain)
+        .cardStyle()
+        .sheet(isPresented: $showSitePicker) {
+            SitePickerSheet(dives: [dive])
+        }
+    }
+
     @ViewBuilder
     private var locationSection: some View {
         if let entry = dive.header.entryLocation {
@@ -185,8 +212,8 @@ struct DiveDetailView: View {
     }
 
     private var placeholder: some View {
-        Text(loc("未设置潜点 — 在地图上选择或新建潜点，可多潜批量关联\n笔记：点击添加（潜伴、装备、能见度…）",
-                 "No dive site set — pick one on the map, batch-assign supported\nNotes: tap to add (buddy, gear, visibility…)"))
+        Text(loc("笔记：点击添加（潜伴、装备、能见度…）",
+                 "Notes: tap to add (buddy, gear, visibility…)"))
             .font(.system(size: 12)).foregroundStyle(Theme.faint)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
