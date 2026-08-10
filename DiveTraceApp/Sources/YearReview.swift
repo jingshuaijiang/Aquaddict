@@ -17,6 +17,8 @@ struct YearStats {
     let stabilityEarly: Double?  // training dives, first vs last third
     let stabilityLate: Double?
     let photoCount: Int
+    let favoriteBuddy: (name: String, count: Int)?
+    let buddyCount: Int
 
     var totalHours: Int { totalSeconds / 3600 }
     var totalMinutesRemainder: Int { totalSeconds % 3600 / 60 }
@@ -31,6 +33,7 @@ struct YearStats {
     @MainActor
     static func compute(year: Int, dives: [Dive],
                         sites: SiteStore, photos: PhotoStore) -> YearStats {
+        let buddyStore = BuddyStore.shared
         let cal = Calendar(identifier: .gregorian)
         var utcCal = cal
         utcCal.timeZone = TimeZone(identifier: "UTC")!
@@ -75,6 +78,12 @@ struct YearStats {
         let stabA = train.count >= 4 ? avg(Array(train.prefix(third))) : nil
         let stabB = train.count >= 4 ? avg(Array(train.suffix(third))) : nil
 
+        var buddyCounts: [String: Int] = [:]
+        for d in yearDives {
+            for b in buddyStore.buddies(for: d.id) { buddyCounts[b, default: 0] += 1 }
+        }
+        let favoriteBuddy = buddyCounts.max { $0.value < $1.value }
+
         return YearStats(
             year: year,
             diveCount: yearDives.count,
@@ -89,7 +98,9 @@ struct YearStats {
             sacSecondHalf: sacB,
             stabilityEarly: stabA,
             stabilityLate: stabB,
-            photoCount: yearDives.map { photos.count(for: $0.id) }.reduce(0, +)
+            photoCount: yearDives.map { photos.count(for: $0.id) }.reduce(0, +),
+            favoriteBuddy: favoriteBuddy.map { ($0.key, $0.value) },
+            buddyCount: buddyCounts.count
         )
     }
 

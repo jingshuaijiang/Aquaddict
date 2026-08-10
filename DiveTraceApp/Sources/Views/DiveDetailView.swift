@@ -6,6 +6,8 @@ struct DiveDetailView: View {
     @State private var prefs = Prefs.shared
     @State private var siteStore = SiteStore.shared
     @State private var showSitePicker = false
+    @State private var buddyStore = BuddyStore.shared
+    @State private var showBuddyPicker = false
 
     var body: some View {
         ScrollView {
@@ -23,6 +25,7 @@ struct DiveDetailView: View {
                 }
                 sectionTitle(loc("潜点 · 笔记", "Site · Notes"))
                 siteRow
+                buddyRow
                 locationSection
                 sectionTitle(loc("照片", "Photos"))
                 DivePhotosSection(diveID: dive.id)
@@ -194,6 +197,33 @@ struct DiveDetailView: View {
         .cardStyle()
         .sheet(isPresented: $showSitePicker) {
             SitePickerSheet(dives: [dive])
+        }
+    }
+
+    private var buddyRow: some View {
+        Button {
+            showBuddyPicker = true
+        } label: {
+            HStack {
+                Image(systemName: "person.2.fill").foregroundStyle(Theme.accent)
+                let buddies = buddyStore.buddies(for: dive.id)
+                if buddies.isEmpty {
+                    Text(loc("添加潜伴…", "Add buddies…"))
+                        .font(.system(size: 14)).foregroundStyle(Theme.muted)
+                } else {
+                    Text(buddies.joined(separator: " · "))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").foregroundStyle(Theme.faint)
+            }
+        }
+        .buttonStyle(.plain)
+        .cardStyle()
+        .sheet(isPresented: $showBuddyPicker) {
+            BuddyPickerSheet(diveID: dive.id)
         }
     }
 

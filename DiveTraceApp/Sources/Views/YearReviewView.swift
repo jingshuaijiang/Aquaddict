@@ -105,6 +105,18 @@ struct YearReviewView: View {
             }))
         }
 
+        if let buddy = s.favoriteBuddy {
+            out.append(AnyView(StoryCard(hue: 6) {
+                eyebrow(loc("最常一起潜", "FAVORITE BUDDY"))
+                Text(buddy.name).font(.system(size: 40, weight: .black))
+                    .multilineTextAlignment(.center)
+                Text(loc("一起潜了 \(buddy.count) 次 · 全年共 \(s.buddyCount) 位潜伴",
+                         "\(buddy.count) dives together · \(s.buddyCount) buddies this year"))
+                    .font(.system(size: 15)).foregroundStyle(Theme.muted)
+                quip(loc("水下最信任的人", "The one you trust down there"))
+            }))
+        }
+
         if let imp = s.sacImprovementPercent, let b = s.sacSecondHalf {
             out.append(AnyView(StoryCard(hue: 6) {
                 eyebrow(loc("气耗进步", "BREATHING BETTER"))
@@ -231,6 +243,9 @@ struct SummaryPoster: View {
                 }
                 if stats.photoCount > 0 {
                     cell("\(stats.photoCount)", loc("张照片", "photos"))
+                }
+                if let b = stats.favoriteBuddy {
+                    cell("\(b.count)×", b.name)
                 }
             }
         }
