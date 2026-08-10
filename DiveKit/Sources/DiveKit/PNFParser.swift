@@ -117,7 +117,8 @@ public enum PNFParser {
                 he: Int(r[9]),
                 cns: Int(r[23]),
                 tank1Bar: tankBar(28),
-                tank2Bar: tankBar(20)
+                tank2Bar: tankBar(20),
+                setpoint: Double(r[19]) / 100.0
             ))
         }
         return (header, samples)

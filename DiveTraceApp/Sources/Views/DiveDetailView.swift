@@ -111,6 +111,7 @@ struct DiveDetailView: View {
                    h.waterDensity == 1000 ? "Fresh" : "Salt")
                + " \(h.waterDensity) · \(h.surfaceMbar) mbar")
             sacRows
+            ccrRows
             kv(loc("采样间隔", "Sample rate"), "\(dive.intervalS) s", last: true)
         }
         .cardStyle()
@@ -132,6 +133,26 @@ struct DiveDetailView: View {
             kv("SAC", U.sacPressure(sacBar), color: Theme.pressure)
             kv("RMV", U.rmv(rmvL) + loc(" @11.1L 瓶", " @AL80"),
                color: rmvL <= 18 ? Theme.good : Theme.ink)
+        }
+    }
+
+    // CCR extras: average loop ppO2 and the setpoint range actually used.
+    @ViewBuilder
+    private var ccrRows: some View {
+        if [DiveMode.cc, .cc2, .sc].contains(dive.header.mode) {
+            let ppo2s = dive.samples.map(\.avgPPO2).filter { $0 > 0 }
+            let setpoints = dive.samples.map(\.setpoint).filter { $0 > 0 }
+            if !ppo2s.isEmpty {
+                kv(loc("平均 ppO₂", "Avg ppO₂"),
+                   String(format: "%.2f bar", ppo2s.reduce(0, +) / Double(ppo2s.count)),
+                   color: Theme.ndl)
+            }
+            if let lo = setpoints.min(), let hi = setpoints.max() {
+                kv(loc("设定点", "Setpoint"),
+                   lo == hi ? String(format: "%.2f bar", lo)
+                            : String(format: "%.2f – %.2f bar", lo, hi),
+                   color: Theme.ndl)
+            }
         }
     }
 

@@ -99,6 +99,14 @@ struct LogbookView: View {
             Text(loc("潜水日志", "DIVE LOG")).font(.system(size: 10, weight: .semibold))
                 .kerning(3).foregroundStyle(Theme.accent)
             Spacer()
+            NavigationLink(destination: RecordsView()) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.accent)
+                    .padding(6)
+                    .background(Theme.panel2, in: Circle())
+                    .overlay(Circle().stroke(Theme.line, lineWidth: 1))
+            }
             Button {
                 prefs.imperial.toggle()
             } label: {

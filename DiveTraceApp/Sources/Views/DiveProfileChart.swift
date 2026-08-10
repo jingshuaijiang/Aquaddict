@@ -21,6 +21,9 @@ struct DiveProfileChart: View {
     private var maxDepth: Double { max(dive.maxDepth * 1.05, 1) }
     private var dur: Int { dive.samples.last?.timeS ?? 1 }
     private var hasPressure: Bool { dive.samples.contains { $0.tank1Bar != nil } }
+    private var isCCR: Bool {
+        [DiveMode.cc, .cc2, .sc].contains(dive.header.mode)
+    }
 
     private var runningAvg: [Double] {
         var out: [Double] = []
@@ -84,6 +87,7 @@ struct DiveProfileChart: View {
                 chip(loc("平均", "Avg"), Theme.ink, $showAvg)
                 chip(loc("水温", "Temp"), Theme.temp, $showTemp)
                 if hasPressure { chip("SAC", Theme.pressure, $showSAC) }
+                if isCCR { chip("ppO₂", Theme.ndl, $showNDL) }
                 chip("NDL", Theme.ndl, $showNDL)
             }
         }
@@ -154,7 +158,26 @@ struct DiveProfileChart: View {
                         .lineStyle(StrokeStyle(lineWidth: 1.8))
                 }
             }
-            if showNDL {
+            if showNDL, isCCR {
+                // ppO2 + setpoint share one band, fixed 0.4–1.6 bar scale
+                ForEach(dive.samples, id: \.timeS) { smp in
+                    LineMark(x: .value("t", smp.timeS),
+                             y: .value("d", bandY(min(max(smp.avgPPO2, 0.4), 1.6),
+                                                  lo: 0.4, hi: 1.6, top: 0.30, bottom: 0.46)),
+                             series: .value("series", "ppo2"))
+                        .foregroundStyle(Theme.ndl)
+                        .lineStyle(StrokeStyle(lineWidth: 1.6))
+                }
+                ForEach(dive.samples, id: \.timeS) { smp in
+                    LineMark(x: .value("t", smp.timeS),
+                             y: .value("d", bandY(min(max(smp.setpoint, 0.4), 1.6),
+                                                  lo: 0.4, hi: 1.6, top: 0.30, bottom: 0.46)),
+                             series: .value("series", "setpoint"))
+                        .foregroundStyle(Theme.ndl.opacity(0.6))
+                        .lineStyle(StrokeStyle(lineWidth: 1.1, dash: [4, 3]))
+                }
+            }
+            if showNDL, !isCCR {
                 let ndls = dive.samples.map { Double($0.ndlMin) }
                 let lo = ndls.min() ?? 0, hi = ndls.max() ?? 1
                 ForEach(dive.samples, id: \.timeS) { s in
