@@ -2,6 +2,32 @@ import Foundation
 
 // Gear management: tank sets (feeding real RMV numbers), serviceable gear
 // with maintenance countdowns, and weighting notes per suit/water.
+// Common tank presets. US tanks are named by gas capacity (ft³) at working
+// pressure; internal water volumes below are the standard spec values.
+struct TankPreset {
+    let name: String
+    let volumeL: Double
+    let fillBar: Double
+
+    static let all: [TankPreset] = [
+        TankPreset(name: "AL80", volumeL: 11.1, fillBar: 207),      // 77.4 ft³ @3000psi
+        TankPreset(name: "AL63", volumeL: 9.0, fillBar: 207),
+        TankPreset(name: "HP80", volumeL: 10.2, fillBar: 237),      // @3442psi
+        TankPreset(name: "HP100", volumeL: 12.9, fillBar: 237),
+        TankPreset(name: "HP117", volumeL: 14.8, fillBar: 237),
+        TankPreset(name: "HP120", volumeL: 15.3, fillBar: 237),
+        TankPreset(name: "LP85", volumeL: 13.2, fillBar: 182),      // @2640psi
+        TankPreset(name: "LP95", volumeL: 14.8, fillBar: 182),
+        TankPreset(name: "LP104", volumeL: 16.0, fillBar: 182),
+        TankPreset(name: "双 LP85 / Double LP85", volumeL: 26.4, fillBar: 182),
+        TankPreset(name: "双 HP100 / Double HP100", volumeL: 25.8, fillBar: 237),
+        TankPreset(name: "10L (Euro)", volumeL: 10.0, fillBar: 232),
+        TankPreset(name: "12L (Euro)", volumeL: 12.0, fillBar: 232),
+        TankPreset(name: "15L (Euro)", volumeL: 15.0, fillBar: 232),
+        TankPreset(name: "D12 (双12)", volumeL: 24.0, fillBar: 232),
+    ]
+}
+
 struct TankSet: Identifiable, Codable, Equatable {
     let id: UUID
     var name: String

@@ -66,9 +66,8 @@ struct PlannerBody: View {
             }
             HStack(spacing: 14) {
                 picker(loc("瓶组", "Tanks"), selection: $tankL,
-                       options: gear.tanks.map { ($0.volumeL, $0.name) } + [
-                    (11.1, "AL80"), (12.0, "S12"), (24.0, "D12"), (22.2, "D80"),
-                ])
+                       options: gear.tanks.map { ($0.volumeL, $0.name) }
+                           + TankPreset.all.map { ($0.volumeL, $0.name) })
                 row2(loc("充气", "Fill"), U.pressure(fillBar)) {
                     Slider(value: $fillBar, in: 100 ... 300, step: 5).tint(Theme.accent)
                 }

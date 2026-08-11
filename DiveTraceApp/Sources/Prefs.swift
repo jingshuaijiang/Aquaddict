@@ -68,6 +68,13 @@ enum U {
         imperial ? String(format: "%.2f ft³/min", lPerMin * cuftPerL)
                  : String(format: "%.1f L/min", lPerMin)
     }
+    /// Gas capacity of a tank (volume × fill) — ft³ imperial, L metric.
+    static func tankCapacity(volumeL: Double, fillBar: Double) -> String {
+        let liters = volumeL * fillBar
+        return imperial ? String(format: "%.0f ft³", liters * cuftPerL)
+                        : String(format: "%.0f L", liters)
+    }
+
     /// Pressure rate (SAC in Shearwater terms) — straight from the transmitter.
     static func sacPressure(_ barPerMin: Double) -> String {
         imperial ? String(format: "%.0f psi/min", barPerMin * psiPerBar)

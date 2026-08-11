@@ -35,7 +35,9 @@ struct GearView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(tank.name).font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(Theme.ink)
-                            Text(String(format: "%.1f L · %.0f bar", tank.volumeL, tank.fillBar))
+                            Text(String(format: "%.1f L · ", tank.volumeL)
+                                 + U.pressure(tank.fillBar) + " · "
+                                 + U.tankCapacity(volumeL: tank.volumeL, fillBar: tank.fillBar))
                                 .font(.system(size: 11, design: .monospaced))
                                 .foregroundStyle(Theme.muted)
                         }
@@ -151,17 +153,37 @@ struct GearView: View {
 struct TankForm: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
-    @State private var volume = 24.0
-    @State private var fill = 200.0
+    @State private var volume = 12.9
+    @State private var fill = 237.0
 
     var body: some View {
         NavigationStack {
             Form {
-                TextField(loc("名称（如 双12、AL80）", "Name (e.g. D12, AL80)"), text: $name)
-                Stepper(String(format: loc("容积 %.1f L", "Volume %.1f L"), volume),
-                        value: $volume, in: 3 ... 40, step: 0.5)
-                Stepper(String(format: loc("常用充压 %.0f bar", "Usual fill %.0f bar"), fill),
-                        value: $fill, in: 100 ... 300, step: 10)
+                Menu {
+                    ForEach(TankPreset.all, id: \.name) { preset in
+                        Button("\(preset.name) · " + U.tankCapacity(volumeL: preset.volumeL,
+                                                                    fillBar: preset.fillBar)) {
+                            name = preset.name
+                            volume = preset.volumeL
+                            fill = preset.fillBar
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "list.bullet.circle")
+                        Text(loc("选择常见瓶组（HP100 / LP85 / AL80…）",
+                                 "Pick a common tank (HP100 / LP85 / AL80…)"))
+                        Spacer()
+                    }
+                    .foregroundStyle(Theme.accent)
+                }
+                TextField(loc("名称", "Name"), text: $name)
+                Stepper(String(format: loc("水容积 %.1f L", "Water volume %.1f L"), volume),
+                        value: $volume, in: 3 ... 40, step: 0.1)
+                Stepper(loc("常用充压 ", "Usual fill ") + U.pressure(fill),
+                        value: $fill, in: 100 ... 300, step: 1)
+                LabeledContent(loc("气容量", "Gas capacity"),
+                               value: U.tankCapacity(volumeL: volume, fillBar: fill))
             }
             .scrollContentBackground(.hidden)
             .background(Theme.abyss)
