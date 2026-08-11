@@ -107,19 +107,38 @@ struct LogbookView: View {
                     .background(Theme.panel2, in: Circle())
                     .overlay(Circle().stroke(Theme.line, lineWidth: 1))
             }
-            Button {
-                prefs.imperial.toggle()
-            } label: {
-                Text(prefs.imperial ? "ft · psi" : "m · bar")
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Theme.panel2, in: Capsule())
-                    .overlay(Capsule().stroke(Theme.line, lineWidth: 1))
-                    .foregroundStyle(Theme.accent)
-            }
-            .buttonStyle(.plain)
+            unitSwitch
         }
         .padding(.top, 6)
+    }
+
+    // Explicit two-segment metric/imperial switch — the active side lights up.
+    private var unitSwitch: some View {
+        HStack(spacing: 0) {
+            unitSegment(loc("公制", "Metric"), sub: "m·bar", active: !prefs.imperial) {
+                prefs.imperial = false
+            }
+            unitSegment(loc("英制", "Imperial"), sub: "ft·psi", active: prefs.imperial) {
+                prefs.imperial = true
+            }
+        }
+        .background(Theme.panel2, in: Capsule())
+        .overlay(Capsule().stroke(Theme.line, lineWidth: 1))
+    }
+
+    private func unitSegment(_ label: String, sub: String, active: Bool,
+                             action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 0) {
+                Text(label).font(.system(size: 10, weight: .bold))
+                Text(sub).font(.system(size: 8, design: .monospaced))
+                    .opacity(0.75)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 4)
+            .background(active ? Theme.accent : .clear, in: Capsule())
+            .foregroundStyle(active ? Theme.abyss : Theme.muted)
+        }
+        .buttonStyle(.plain)
     }
 
     private func heroCard(_ dive: Dive) -> some View {
