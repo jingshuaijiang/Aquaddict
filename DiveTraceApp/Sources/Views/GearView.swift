@@ -72,29 +72,27 @@ struct GearView: View {
     // MARK: serviceable gear
 
     private var serviceSection: some View {
-        Section(loc("装备保养", "SERVICE")) {
+        Section {
             ForEach(gear.items) { item in
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.name).font(.system(size: 14, weight: .semibold))
-                        Text(item.category).font(.system(size: 11))
-                            .foregroundStyle(Theme.muted)
-                    }
-                    Spacer()
-                    if let days = item.daysToService {
-                        VStack(alignment: .trailing, spacing: 2) {
+                NavigationLink(destination: GearItemDetailView(itemID: item.id)) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.name).font(.system(size: 14, weight: .semibold))
+                            Text(item.category
+                                 + ((item.parts?.isEmpty ?? true) ? ""
+                                    : loc(" · \(item.parts!.count) 个部件",
+                                          " · \(item.parts!.count) parts")))
+                                .font(.system(size: 11))
+                                .foregroundStyle(Theme.muted)
+                        }
+                        Spacer()
+                        if let days = item.worstDays {
                             Text(days >= 0
-                                 ? loc("还有 \(days) 天", "\(days) days left")
-                                 : loc("过期 \(-days) 天", "\(-days) days overdue"))
+                                 ? loc("还有 \(days) 天", "\(days)d left")
+                                 : loc("过期 \(-days) 天", "\(-days)d overdue"))
                                 .font(.system(size: 12, weight: .bold, design: .monospaced))
                                 .foregroundStyle(days > 30 ? Theme.good
                                                  : days >= 0 ? Theme.temp : Theme.danger)
-                            Button(loc("已保养", "Serviced")) {
-                                gear.markServiced(item.id)
-                            }
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Theme.accent)
-                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -110,6 +108,11 @@ struct GearView: View {
                 Label(loc("添加装备", "Add gear"), systemImage: "plus.circle")
                     .foregroundStyle(Theme.accent)
             }
+        } header: {
+            Text(loc("装备保养", "SERVICE"))
+        } footer: {
+            Text(loc("点进装备可管理部件（干衣的颈封/手封/拉链/阀门各自跟踪）",
+                     "Open an item to manage parts (drysuit seals/zipper/valves tracked separately)"))
         }
         .listRowBackground(Theme.panel)
     }
@@ -297,6 +300,139 @@ struct WeightForm: View {
                         dismiss()
                     }
                     .disabled(suit.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+}
+
+
+// One gear item: its own service cycle plus independently tracked parts.
+struct GearItemDetailView: View {
+    let itemID: UUID
+    @State private var gear = GearStore.shared
+    @State private var addingPart = false
+
+    private var item: GearItem? { gear.item(itemID) }
+    private var isDrysuit: Bool {
+        [loc("干衣", "Drysuit"), "Drysuit", "干衣"].contains(item?.category ?? "")
+    }
+
+    var body: some View {
+        List {
+            if let item {
+                Section(loc("整体", "OVERALL")) {
+                    countdownRow(name: loc("整体保养", "Full service"),
+                                 days: item.daysToService) {
+                        gear.markServiced(item.id)
+                    }
+                }
+                .listRowBackground(Theme.panel)
+
+                Section(loc("部件", "PARTS")) {
+                    ForEach(item.parts ?? []) { part in
+                        countdownRow(name: part.name, days: part.daysToService,
+                                     sub: loc("每 \(part.intervalMonths) 个月",
+                                              "every \(part.intervalMonths) mo")) {
+                            gear.markPartServiced(itemID: item.id, partID: part.id)
+                        }
+                        .swipeActions {
+                            Button(loc("删除", "Delete"), role: .destructive) {
+                                gear.deletePart(itemID: item.id, partID: part.id)
+                            }
+                        }
+                    }
+                    if isDrysuit, (item.parts ?? []).isEmpty {
+                        Button {
+                            gear.addDrysuitTemplate(to: item.id)
+                        } label: {
+                            Label(loc("一键添加干衣部件（颈封/手封/拉链/阀门）",
+                                      "Add drysuit parts (seals/zipper/valves)"),
+                                  systemImage: "wand.and.stars")
+                                .foregroundStyle(Theme.accent)
+                        }
+                    }
+                    Button {
+                        addingPart = true
+                    } label: {
+                        Label(loc("添加部件", "Add part"), systemImage: "plus.circle")
+                            .foregroundStyle(Theme.accent)
+                    }
+                }
+                .listRowBackground(Theme.panel)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(Theme.abyss)
+        .navigationTitle(item?.name ?? "")
+        .sheet(isPresented: $addingPart) {
+            PartForm(itemID: itemID)
+        }
+    }
+
+    private func countdownRow(name: String, days: Int?, sub: String? = nil,
+                              serviced: @escaping () -> Void) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name).font(.system(size: 14, weight: .semibold))
+                if let sub {
+                    Text(sub).font(.system(size: 11)).foregroundStyle(Theme.muted)
+                }
+            }
+            Spacer()
+            if let days {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(days >= 0
+                         ? loc("还有 \(days) 天", "\(days) days left")
+                         : loc("过期 \(-days) 天", "\(-days) days overdue"))
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundStyle(days > 30 ? Theme.good
+                                         : days >= 0 ? Theme.temp : Theme.danger)
+                    Button(loc("已保养", "Serviced")) { serviced() }
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Theme.accent)
+                        .buttonStyle(.plain)
+                }
+            } else {
+                Text(loc("未跟踪", "Untracked")).font(.system(size: 11))
+                    .foregroundStyle(Theme.faint)
+            }
+        }
+    }
+}
+
+struct PartForm: View {
+    let itemID: UUID
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var months = 12
+    @State private var last = Date()
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                TextField(loc("部件名（如 颈封）", "Part name (e.g. neck seal)"), text: $name)
+                Stepper(loc("周期 \(months) 个月", "Every \(months) months"),
+                        value: $months, in: 1 ... 60)
+                DatePicker(loc("上次保养/更换", "Last serviced/replaced"),
+                           selection: $last, displayedComponents: .date)
+            }
+            .scrollContentBackground(.hidden)
+            .background(Theme.abyss)
+            .navigationTitle(loc("新部件", "New Part"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(loc("取消", "Cancel")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(loc("保存", "Save")) {
+                        GearStore.shared.addPart(to: itemID, name: name,
+                                                 intervalMonths: months, lastService: last)
+                        dismiss()
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
         }

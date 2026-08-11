@@ -36,12 +36,30 @@ struct TankSet: Identifiable, Codable, Equatable {
     var isDefault: Bool
 }
 
+struct GearPart: Identifiable, Codable, Equatable {
+    let id: UUID
+    var name: String
+    var lastService: Date
+    var intervalMonths: Int
+
+    var nextService: Date? {
+        Calendar.current.date(byAdding: .month, value: intervalMonths, to: lastService)
+    }
+
+    var daysToService: Int? {
+        nextService.map {
+            Calendar.current.dateComponents([.day], from: Date(), to: $0).day ?? 0
+        }
+    }
+}
+
 struct GearItem: Identifiable, Codable, Equatable {
     let id: UUID
     var name: String
     var category: String
     var lastService: Date?
     var serviceIntervalMonths: Int?
+    var parts: [GearPart]?   // optional for backward-compatible decoding
 
     var nextService: Date? {
         guard let last = lastService, let months = serviceIntervalMonths else { return nil }
@@ -52,6 +70,12 @@ struct GearItem: Identifiable, Codable, Equatable {
         nextService.map {
             Calendar.current.dateComponents([.day], from: Date(), to: $0).day ?? 0
         }
+    }
+
+    /// Most urgent countdown across the item and all its parts.
+    var worstDays: Int? {
+        let all = [daysToService] + (parts ?? []).map(\.daysToService)
+        return all.compactMap { $0 }.min()
     }
 }
 
@@ -137,6 +161,43 @@ final class GearStore {
         guard let i = items.firstIndex(where: { $0.id == id }) else { return }
         items[i].lastService = Date()
         save()
+    }
+
+    // MARK: parts
+
+    func item(_ id: UUID) -> GearItem? {
+        items.first { $0.id == id }
+    }
+
+    func addPart(to itemID: UUID, name: String, intervalMonths: Int,
+                 lastService: Date = Date()) {
+        guard let i = items.firstIndex(where: { $0.id == itemID }) else { return }
+        var parts = items[i].parts ?? []
+        parts.append(GearPart(id: UUID(), name: name,
+                              lastService: lastService, intervalMonths: intervalMonths))
+        items[i].parts = parts
+        save()
+    }
+
+    func markPartServiced(itemID: UUID, partID: UUID) {
+        guard let i = items.firstIndex(where: { $0.id == itemID }),
+              let j = items[i].parts?.firstIndex(where: { $0.id == partID }) else { return }
+        items[i].parts?[j].lastService = Date()
+        save()
+    }
+
+    func deletePart(itemID: UUID, partID: UUID) {
+        guard let i = items.firstIndex(where: { $0.id == itemID }) else { return }
+        items[i].parts?.removeAll { $0.id == partID }
+        save()
+    }
+
+    /// Standard drysuit wear parts with typical service intervals.
+    func addDrysuitTemplate(to itemID: UUID) {
+        addPart(to: itemID, name: loc("颈封", "Neck seal"), intervalMonths: 12)
+        addPart(to: itemID, name: loc("手封", "Wrist seals"), intervalMonths: 12)
+        addPart(to: itemID, name: loc("拉链", "Zipper"), intervalMonths: 24)
+        addPart(to: itemID, name: loc("充气/排气阀", "Valves"), intervalMonths: 24)
     }
 
     func deleteItem(_ id: UUID) {
