@@ -19,12 +19,12 @@ struct TankPreset {
         TankPreset(name: "LP85", volumeL: 13.2, fillBar: 182),      // @2640psi
         TankPreset(name: "LP95", volumeL: 14.8, fillBar: 182),
         TankPreset(name: "LP104", volumeL: 16.0, fillBar: 182),
-        TankPreset(name: "双 LP85 / Double LP85", volumeL: 26.4, fillBar: 182),
-        TankPreset(name: "双 HP100 / Double HP100", volumeL: 25.8, fillBar: 237),
-        TankPreset(name: "10L (Euro)", volumeL: 10.0, fillBar: 232),
-        TankPreset(name: "12L (Euro)", volumeL: 12.0, fillBar: 232),
-        TankPreset(name: "15L (Euro)", volumeL: 15.0, fillBar: 232),
-        TankPreset(name: "D12 (双12)", volumeL: 24.0, fillBar: 232),
+        TankPreset(name: loc("双瓶 LP85", "Double LP85"), volumeL: 26.4, fillBar: 182),
+        TankPreset(name: loc("双瓶 HP100", "Double HP100"), volumeL: 25.8, fillBar: 237),
+        TankPreset(name: loc("10L 欧标", "10L (Euro)"), volumeL: 10.0, fillBar: 232),
+        TankPreset(name: loc("12L 欧标", "12L (Euro)"), volumeL: 12.0, fillBar: 232),
+        TankPreset(name: loc("15L 欧标", "15L (Euro)"), volumeL: 15.0, fillBar: 232),
+        TankPreset(name: loc("双瓶 12L (D12)", "D12 (doubles)"), volumeL: 24.0, fillBar: 232),
     ]
 }
 
