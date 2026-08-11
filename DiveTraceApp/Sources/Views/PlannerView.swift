@@ -4,7 +4,17 @@ import DiveKit
 // Pre-dive gas planner: dial in depth and tanks, read MOD / mix / density /
 // END / min deco / min gas / turn pressure at a glance. GUE conventions.
 struct PlannerView: View {
+    var body: some View {
+        NavigationStack {
+            PlannerBody()
+                .navigationTitle(loc("气体计划", "Gas Planner"))
+        }
+    }
+}
+
+struct PlannerBody: View {
     @State private var prefs = Prefs.shared
+    @State private var gear = GearStore.shared
     @AppStorage("plannerDepth") private var depth = 30.0
     @AppStorage("plannerO2") private var o2 = 32
     @AppStorage("plannerHe") private var he = 0
@@ -24,25 +34,22 @@ struct PlannerView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    inputCard
-                    suggestionCard
-                    limitsCard
-                    gasCard
-                    minDecoCard
-                    Text(loc("计划工具仅供参考 — 执行你受训过的程序",
-                             "Planning aid only — execute the procedures you trained"))
-                        .font(.system(size: 10)).foregroundStyle(Theme.faint)
-                        .frame(maxWidth: .infinity)
-                        .padding(.bottom, 16)
-                }
-                .padding(.horizontal, 16)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                inputCard
+                suggestionCard
+                limitsCard
+                gasCard
+                minDecoCard
+                Text(loc("计划工具仅供参考 — 执行你受训过的程序",
+                         "Planning aid only — execute the procedures you trained"))
+                    .font(.system(size: 10)).foregroundStyle(Theme.faint)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 16)
             }
-            .background(Theme.abyss)
-            .navigationTitle(loc("气体计划", "Gas Planner"))
+            .padding(.horizontal, 16)
         }
+        .background(Theme.abyss)
     }
 
     // MARK: inputs
@@ -58,7 +65,8 @@ struct PlannerView: View {
                 stepper("He %", value: $he, range: 0 ... 60)
             }
             HStack(spacing: 14) {
-                picker(loc("瓶组", "Tanks"), selection: $tankL, options: [
+                picker(loc("瓶组", "Tanks"), selection: $tankL,
+                       options: gear.tanks.map { ($0.volumeL, $0.name) } + [
                     (11.1, "AL80"), (12.0, "S12"), (24.0, "D12"), (22.2, "D80"),
                 ])
                 row2(loc("充气", "Fill"), U.pressure(fillBar)) {

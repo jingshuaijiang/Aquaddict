@@ -21,11 +21,16 @@ struct RootView: View {
     @State private var autoReviewYear: Int?
 
     var body: some View {
+        ZStack {
+            mainTabs
+            SideDrawer()
+        }
+    }
+
+    private var mainTabs: some View {
         TabView {
             LogbookView()
                 .tabItem { Label(loc("日志", "Log"), systemImage: "water.waves") }
-            PlannerView()
-                .tabItem { Label(loc("计划", "Plan"), systemImage: "function") }
             MapTabView()
                 .tabItem { Label(loc("地图", "Map"), systemImage: "mappin.and.ellipse") }
         }

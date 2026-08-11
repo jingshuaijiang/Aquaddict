@@ -95,18 +95,20 @@ struct LogbookView: View {
 
     private var brand: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("Aquaddict").font(.system(size: 24, weight: .bold))
-            Text(loc("潜水日志", "DIVE LOG")).font(.system(size: 10, weight: .semibold))
-                .kerning(3).foregroundStyle(Theme.accent)
-            Spacer()
-            NavigationLink(destination: RecordsView()) {
-                Image(systemName: "trophy.fill")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.accent)
-                    .padding(6)
-                    .background(Theme.panel2, in: Circle())
-                    .overlay(Circle().stroke(Theme.line, lineWidth: 1))
+            Button {
+                withAnimation(.spring(duration: 0.3)) { AppNav.shared.drawerOpen = true }
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.accent)
+                    Text("Aquaddict").font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(Theme.ink)
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            Spacer()
             unitSwitch
         }
         .padding(.top, 6)
