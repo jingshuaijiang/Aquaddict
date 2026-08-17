@@ -33,9 +33,9 @@ func weightCalcTests() {
         tgt.tankKey = "2xHP100"
         let r = WeightCalc.transfer(referenceWeightKg: 10, bodyKg: 75,
                                     ref: cfg, target: tgt)
-        // −1.0 → −4.5: 3.5 kg less lead
-        expectClose(r.tankDeltaKg, -3.5, tol: 0.001, "doubles sink 3.5 kg more")
-        expectClose(r.targetKg, 6.5, tol: 0.001, "target")
+        // −1.0 → −7.0: 6 kg less lead
+        expectClose(r.tankDeltaKg, -6.0, tol: 0.001, "doubles sink 6 kg more")
+        expectClose(r.targetKg, 4.0, tol: 0.001, "target")
     }
 
     runTest("saltToFreshRemovesAboutTwoPointFivePercent") {
@@ -60,16 +60,16 @@ func weightCalcTests() {
         expectClose(r.suitDeltaKg, 2.4, tol: 0.001, "200→400 g adds 2.4 kg")
     }
 
-    runTest("userScenarioSingleSalt28lbToDoublesFresh") {
-        // drysuit 200 g, single (AL80), salt, 28 lb ≈ 12.7 kg
-        let ref = WeightCalc.Config(tankKey: "AL80", plate: .steel,
+    runTest("userMeasuredScenario28lbSingleSaltTo6lbDoublesFresh") {
+        // real-world anchor: drysuit 200 g + single HP100 + salt = 28 lb;
+        // the same diver measured 6 lb (2.7 kg) on double HP100 in fresh.
+        let ref = WeightCalc.Config(tankKey: "HP100", plate: .steel,
                                     suit: drysuit200, saltWater: true)
         let tgt = WeightCalc.Config(tankKey: "2xHP100", plate: .steel,
                                     suit: drysuit200, saltWater: false)
         let r = WeightCalc.transfer(referenceWeightKg: 12.7, bodyKg: 75,
                                     ref: ref, target: tgt)
-        // tank: 1.7 − (−4.5) = 6.2 less; water: ~−3; → ≈ 12.7 − 6.2 − 3 ≈ 3.5
-        expect(r.targetKg > 1 && r.targetKg < 6,
-               "doubles+fresh needs far less: \(r.targetKg) kg")
+        expect(abs(r.targetKg - 2.7) < 1.5,
+               "predicts close to the measured 6 lb: \(r.targetKg) kg")
     }
 }

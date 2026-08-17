@@ -40,12 +40,14 @@ public enum WeightCalc {
         Tank(key: "LP85", emptyBuoyancyKg: -0.4, fullMassKg: 17.0),
         Tank(key: "LP95", emptyBuoyancyKg: -0.9, fullMassKg: 19.0),
         Tank(key: "LP104", emptyBuoyancyKg: -1.4, fullMassKg: 21.0),
-        // doubles: 2× cylinders + manifold/bands ≈ −2.5 kg of hardware
-        Tank(key: "2xLP85", emptyBuoyancyKg: -0.4 * 2 - 2.5, fullMassKg: 17.0 * 2 + 4),
-        Tank(key: "2xHP100", emptyBuoyancyKg: -1.0 * 2 - 2.5, fullMassKg: 17.4 * 2 + 4),
+        // doubles: 2× cylinders + manifold, bands, doubled valves, second reg
+        // set and a heavier wing ≈ −5 kg of hardware (calibrated against a
+        // real single-HP100 → double-HP100 transition measuring −10 lb)
+        Tank(key: "2xLP85", emptyBuoyancyKg: -0.4 * 2 - 5.0, fullMassKg: 17.0 * 2 + 7),
+        Tank(key: "2xHP100", emptyBuoyancyKg: -1.0 * 2 - 5.0, fullMassKg: 17.4 * 2 + 7),
         Tank(key: "12L", emptyBuoyancyKg: -1.5, fullMassKg: 16.0),
         Tank(key: "15L", emptyBuoyancyKg: -2.0, fullMassKg: 20.0),
-        Tank(key: "2x12L", emptyBuoyancyKg: -1.5 * 2 - 2.5, fullMassKg: 16.0 * 2 + 4),
+        Tank(key: "2x12L", emptyBuoyancyKg: -1.5 * 2 - 5.0, fullMassKg: 16.0 * 2 + 7),
     ]
 
     public static func tank(_ key: String) -> Tank {
@@ -122,9 +124,11 @@ public enum WeightCalc {
     }
 
     /// Predict ballast for `target` given a measured `referenceWeightKg` in
-    /// the `ref` configuration. `bodyKg` feeds the water-density term.
+    /// the `ref` configuration. `bodyKg` feeds the water-density term;
+    /// `correctionKg` is the user's personal fudge from verified checks.
     public static func transfer(referenceWeightKg: Double, bodyKg: Double,
-                                ref: Config, target: Config) -> Breakdown {
+                                ref: Config, target: Config,
+                                correctionKg: Double = 0) -> Breakdown {
         let refTank = tank(ref.tankKey)
         let tgtTank = tank(target.tankKey)
 
@@ -143,7 +147,7 @@ public enum WeightCalc {
         }
 
         let targetKg = max(0, referenceWeightKg + tankDelta + plateDelta
-                            + suitDelta + waterDelta)
+                            + suitDelta + waterDelta + correctionKg)
         return Breakdown(tankDeltaKg: tankDelta, plateDeltaKg: plateDelta,
                          suitDeltaKg: suitDelta, waterDeltaKg: waterDelta,
                          targetKg: targetKg)

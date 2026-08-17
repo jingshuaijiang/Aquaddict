@@ -19,6 +19,27 @@ struct WeightCalcView: View {
     @AppStorage("wcTgtPlate") private var tgtPlate = "steel"
     @AppStorage("wcTgtSuit") private var tgtSuit = "dry200"
     @AppStorage("wcTgtSalt") private var tgtSalt = false
+    @AppStorage("wcCorrection") private var correctionKg = 0.0
+    @AppStorage("wcAnchors") private var anchorsJSON = "[]"
+
+    struct Anchor: Codable, Identifiable {
+        var id: UUID = UUID()
+        var tank: String
+        var plate: String
+        var suit: String
+        var salt: Bool
+        var weightKg: Double
+    }
+
+    private var anchors: [Anchor] {
+        (try? JSONDecoder().decode([Anchor].self, from: Data(anchorsJSON.utf8))) ?? []
+    }
+
+    private func saveAnchors(_ a: [Anchor]) {
+        if let d = try? JSONEncoder().encode(a) {
+            anchorsJSON = String(data: d, encoding: .utf8) ?? "[]"
+        }
+    }
 
     static let suits: [(key: String, zh: String, en: String, suit: WeightCalc.Suit)] = [
         ("dry150", "干衣 150g 内衬", "Drysuit 150g", .drysuit(undergarmentGrams: 150)),
@@ -43,7 +64,8 @@ struct WeightCalcView: View {
                                    suit: suit(refSuit), saltWater: refSalt),
             target: WeightCalc.Config(tankKey: tgtTank,
                                       plate: WeightCalc.Plate(rawValue: tgtPlate) ?? .steel,
-                                      suit: suit(tgtSuit), saltWater: tgtSalt))
+                                      suit: suit(tgtSuit), saltWater: tgtSalt),
+            correctionKg: correctionKg)
     }
 
     var body: some View {
@@ -53,6 +75,7 @@ struct WeightCalcView: View {
                            tank: $refTank, plate: $refPlate,
                            suitKey: $refSuit, salt: $refSalt)
                 measuredCard
+                anchorsCard
                 configCard(title: loc("② 目标配置", "② Target config"),
                            tank: $tgtTank, plate: $tgtPlate,
                            suitKey: $tgtSuit, salt: $tgtSalt)
@@ -147,6 +170,81 @@ struct WeightCalcView: View {
                     .font(.system(size: 13, weight: .bold, design: .monospaced))
             }
             Slider(value: $bodyKg, in: 40 ... 130, step: 1).tint(Theme.accent)
+            HStack {
+                Text(loc("个人修正（按验证结果微调）", "Personal correction"))
+                    .font(.system(size: 12)).foregroundStyle(Theme.muted)
+                Spacer()
+                Text(String(format: "%+.1f kg", correctionKg))
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundStyle(abs(correctionKg) < 0.1 ? Theme.faint : Theme.accent)
+            }
+            Slider(value: $correctionKg, in: -5 ... 5, step: 0.25).tint(Theme.accent)
+        }
+        .cardStyle()
+    }
+
+    // Verified real-world measurements, loadable as the reference in one tap.
+    private var anchorsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(loc("实测锚点库", "VERIFIED ANCHORS"))
+                    .font(.system(size: 10, weight: .semibold)).kerning(1.5)
+                    .foregroundStyle(Theme.muted)
+                Spacer()
+                Button {
+                    var a = anchors
+                    a.append(Anchor(tank: refTank, plate: refPlate, suit: refSuit,
+                                    salt: refSalt, weightKg: refWeightKg))
+                    saveAnchors(a)
+                } label: {
+                    Label(loc("存入当前①", "Save ①"), systemImage: "pin.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.accent)
+                }
+                .buttonStyle(.plain)
+            }
+            if anchors.isEmpty {
+                Text(loc("每做一次配重检查就存一个锚点 — 换算基准越多越准",
+                         "Save an anchor after every weight check — more anchors, better predictions"))
+                    .font(.system(size: 11)).foregroundStyle(Theme.faint)
+            }
+            ForEach(anchors) { anchor in
+                HStack(spacing: 8) {
+                    Image(systemName: "pin")
+                        .font(.system(size: 11)).foregroundStyle(Theme.accent)
+                    Text("\(tankLabel(anchor.tank)) · "
+                         + (Self.suits.first { $0.key == anchor.suit }
+                            .map { loc($0.zh, $0.en) } ?? "?")
+                         + " · " + (anchor.salt ? loc("海水", "salt") : loc("淡水", "fresh")))
+                        .font(.system(size: 11)).foregroundStyle(Theme.ink)
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                    Spacer()
+                    Text(weightText(anchor.weightKg))
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Theme.accent)
+                    Button {
+                        refTank = anchor.tank
+                        refPlate = anchor.plate
+                        refSuit = anchor.suit
+                        refSalt = anchor.salt
+                        refWeightKg = anchor.weightKg
+                    } label: {
+                        Text(loc("设为①", "Use"))
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Theme.panel2, in: Capsule())
+                            .foregroundStyle(Theme.accent)
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        saveAnchors(anchors.filter { $0.id != anchor.id })
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 13)).foregroundStyle(Theme.faint)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
         .cardStyle()
     }
@@ -169,7 +267,11 @@ struct WeightCalcView: View {
                 deltaRow(loc("瓶组差异", "Tanks"), r.tankDeltaKg)
                 deltaRow(loc("背板差异", "Plate"), r.plateDeltaKg)
                 deltaRow(loc("保暖差异", "Insulation"), r.suitDeltaKg)
-                deltaRow(loc("水密度", "Water density"), r.waterDeltaKg, last: true)
+                deltaRow(loc("水密度", "Water density"), r.waterDeltaKg,
+                         last: abs(correctionKg) < 0.1)
+                if abs(correctionKg) >= 0.1 {
+                    deltaRow(loc("个人修正", "Personal correction"), correctionKg, last: true)
+                }
             }
         }
         .frame(maxWidth: .infinity)
