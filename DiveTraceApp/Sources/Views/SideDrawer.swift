@@ -6,6 +6,7 @@ final class AppNav {
     static let shared = AppNav()
     var drawerOpen = false
     var destination: DrawerDestination?
+    var trimOpen = false
 }
 
 enum DrawerDestination: String, Identifiable {
@@ -29,6 +30,10 @@ struct SideDrawer: View {
                 panel
                     .transition(.move(edge: .leading))
             }
+        }
+        .fullScreenCover(isPresented: Binding(get: { nav.trimOpen },
+                                              set: { nav.trimOpen = $0 })) {
+            TrimSimulatorView()
         }
         .sheet(item: Binding(get: { nav.destination },
                              set: { nav.destination = $0 })) { dest in
@@ -55,6 +60,26 @@ struct SideDrawer: View {
             item(loc("气体计划器", "Gas Planner"), icon: "function", dest: .planner)
             item(loc("装备管理", "Gear"), icon: "wrench.and.screwdriver.fill", dest: .gear)
             item(loc("个人纪录", "Records"), icon: "trophy.fill", dest: .records)
+            Button {
+                withAnimation(.spring(duration: 0.25)) { nav.drawerOpen = false }
+                nav.trimOpen = true
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "figure.open.water.swim")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 26)
+                    Text(loc("Trim 模拟器", "Trim Simulator"))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                    Spacer()
+                    Image(systemName: "rectangle.landscape.rotate")
+                        .font(.system(size: 11)).foregroundStyle(Theme.faint)
+                }
+                .padding(.vertical, 13)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
             Spacer()
 
