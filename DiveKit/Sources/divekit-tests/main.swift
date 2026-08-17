@@ -8,6 +8,7 @@ gnssTests()
 gasPlannerTests()
 trimModelTests()
 weightCalcTests()
+decoTests()
 
 print("\n\(checks) checks, \(failures) failures")
 exit(failures == 0 ? 0 : 1)
