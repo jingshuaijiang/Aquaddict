@@ -8,6 +8,8 @@ struct DiveDetailView: View {
     @State private var showSitePicker = false
     @State private var buddyStore = BuddyStore.shared
     @State private var showBuddyPicker = false
+    @State private var speciesStore = SpeciesStore.shared
+    @State private var showSpeciesPicker = false
 
     var body: some View {
         ScrollView {
@@ -19,6 +21,7 @@ struct DiveDetailView: View {
                 summaryGrid
                 sectionTitle(loc("减压 · 气体", "Deco · Gas"))
                 decoCard
+                tissueRow
                 if dive.training, let m = dive.metrics {
                     sectionTitle(loc("训练评分", "Training Scores"))
                     trainingScores(m)
@@ -26,6 +29,7 @@ struct DiveDetailView: View {
                 sectionTitle(loc("潜点 · 笔记", "Site · Notes"))
                 siteRow
                 buddyRow
+                speciesRow
                 locationSection
                 sectionTitle(loc("照片", "Photos"))
                 DivePhotosSection(diveID: dive.id)
@@ -115,6 +119,54 @@ struct DiveDetailView: View {
             kv(loc("采样间隔", "Sample rate"), "\(dive.intervalS) s", last: true)
         }
         .cardStyle()
+    }
+
+    private var tissueRow: some View {
+        NavigationLink(destination: TissueReplayView(dive: dive)) {
+            HStack {
+                Image(systemName: "chart.bar.fill").foregroundStyle(Theme.ndl)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(loc("组织负荷回放", "Tissue loading replay"))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                    Text(loc("ZHL-16C · 16 舱加载/排放动画", "ZHL-16C · watch 16 compartments load & clear"))
+                        .font(.system(size: 11)).foregroundStyle(Theme.muted)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").foregroundStyle(Theme.faint)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .cardStyle()
+    }
+
+    private var speciesRow: some View {
+        Button {
+            showSpeciesPicker = true
+        } label: {
+            HStack {
+                Image(systemName: "fish.fill").foregroundStyle(Theme.accent)
+                let seen = speciesStore.species(for: dive.id)
+                if seen.isEmpty {
+                    Text(loc("记录看到的生物…", "Log sightings…"))
+                        .font(.system(size: 14)).foregroundStyle(Theme.muted)
+                } else {
+                    Text(seen.joined(separator: " · "))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").foregroundStyle(Theme.faint)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .cardStyle()
+        .sheet(isPresented: $showSpeciesPicker) {
+            SpeciesPickerSheet(diveID: dive.id)
+        }
     }
 
     // Gas consumption from AI transmitter data, surface-normalized; tank size

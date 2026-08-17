@@ -15,6 +15,7 @@ struct PlannerView: View {
 struct PlannerBody: View {
     @State private var prefs = Prefs.shared
     @State private var gear = GearStore.shared
+    @AppStorage("plannerMode") private var mode = 0
     @AppStorage("plannerDepth") private var depth = 30.0
     @AppStorage("plannerO2") private var o2 = 32
     @AppStorage("plannerHe") private var he = 0
@@ -36,16 +37,26 @@ struct PlannerBody: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                Picker("", selection: $mode) {
+                    Text(loc("气体 · MinDeco", "Gas · Min Deco")).tag(0)
+                    Text(loc("减压计划", "Deco Plan")).tag(1)
+                }
+                .pickerStyle(.segmented)
                 inputCard
-                suggestionCard
-                limitsCard
-                gasCard
-                minDecoCard
-                Text(loc("计划工具仅供参考 — 执行你受训过的程序",
-                         "Planning aid only — execute the procedures you trained"))
-                    .font(.system(size: 10)).foregroundStyle(Theme.faint)
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, 16)
+                if mode == 0 {
+                    suggestionCard
+                    limitsCard
+                    gasCard
+                    minDecoCard
+                    Text(loc("计划工具仅供参考 — 执行你受训过的程序",
+                             "Planning aid only — execute the procedures you trained"))
+                        .font(.system(size: 10)).foregroundStyle(Theme.faint)
+                        .frame(maxWidth: .infinity)
+                        .padding(.bottom, 16)
+                } else {
+                    DecoPlanSection()
+                        .padding(.bottom, 16)
+                }
             }
             .padding(.horizontal, 16)
         }

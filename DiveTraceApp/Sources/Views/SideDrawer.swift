@@ -10,7 +10,7 @@ final class AppNav {
 }
 
 enum DrawerDestination: String, Identifiable {
-    case planner, gear, records, weights
+    case planner, gear, records, weights, blender
     var id: String { rawValue }
 }
 
@@ -43,6 +43,7 @@ struct SideDrawer: View {
                 case .gear: GearView()
                 case .records: RecordsView()
                 case .weights: WeightCalcView()
+                case .blender: BlenderView()
                 }
             }
             .presentationDetents([.large])
@@ -61,6 +62,7 @@ struct SideDrawer: View {
             item(loc("气体计划器", "Gas Planner"), icon: "function", dest: .planner)
             item(loc("装备管理", "Gear"), icon: "wrench.and.screwdriver.fill", dest: .gear)
             item(loc("配重换算", "Weight Transfer"), icon: "scalemass.fill", dest: .weights)
+            item(loc("混气计算", "Blender"), icon: "circle.grid.cross.fill", dest: .blender)
             item(loc("个人纪录", "Records"), icon: "trophy.fill", dest: .records)
             Button {
                 withAnimation(.spring(duration: 0.25)) { nav.drawerOpen = false }

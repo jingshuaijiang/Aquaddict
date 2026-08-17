@@ -132,6 +132,17 @@ struct YearReviewView: View {
             }))
         }
 
+        if s.speciesCount > 0, let top = s.topSpecies {
+            out.append(AnyView(StoryCard(hue: 5) {
+                eyebrow(loc("年度图鉴", "LIFE LIST"))
+                big("\(s.speciesCount)", loc("种生物", "species"))
+                Text(loc("见得最多：\(top.name) · \(top.count) 次",
+                         "Most seen: \(top.name) · \(top.count)×"))
+                    .font(.system(size: 15)).foregroundStyle(Theme.muted)
+                quip(loc("海里的老朋友都认识你了", "The locals know you by now"))
+            }))
+        }
+
         if let imp = s.sacImprovementPercent, let b = s.sacSecondHalf {
             out.append(AnyView(StoryCard(hue: 6) {
                 eyebrow(loc("气耗进步", "BREATHING BETTER"))

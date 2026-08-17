@@ -19,6 +19,8 @@ struct YearStats {
     let photoCount: Int
     let favoriteBuddy: (name: String, count: Int)?
     let buddyCount: Int
+    let speciesCount: Int
+    let topSpecies: (name: String, count: Int)?
 
     var totalHours: Int { totalSeconds / 3600 }
     var totalMinutesRemainder: Int { totalSeconds % 3600 / 60 }
@@ -78,6 +80,12 @@ struct YearStats {
         let stabA = train.count >= 4 ? avg(Array(train.prefix(third))) : nil
         let stabB = train.count >= 4 ? avg(Array(train.suffix(third))) : nil
 
+        let speciesStore = SpeciesStore.shared
+        var speciesCounts: [String: Int] = [:]
+        for d in yearDives {
+            for sp in speciesStore.species(for: d.id) { speciesCounts[sp, default: 0] += 1 }
+        }
+
         var buddyCounts: [String: Int] = [:]
         for d in yearDives {
             for b in buddyStore.buddies(for: d.id) { buddyCounts[b, default: 0] += 1 }
@@ -100,7 +108,10 @@ struct YearStats {
             stabilityLate: stabB,
             photoCount: yearDives.map { photos.count(for: $0.id) }.reduce(0, +),
             favoriteBuddy: favoriteBuddy.map { ($0.key, $0.value) },
-            buddyCount: buddyCounts.count
+            buddyCount: buddyCounts.count,
+            speciesCount: speciesCounts.count,
+            topSpecies: speciesCounts.max { $0.value < $1.value }
+                .map { ($0.key, $0.value) }
         )
     }
 
