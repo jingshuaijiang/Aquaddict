@@ -49,6 +49,14 @@ struct LogbookView: View {
                             }
                         }
                         if selecting { Spacer(minLength: 70) }
+                    } else if store.isLoading {
+                        VStack(spacing: 14) {
+                            ProgressView().tint(Theme.accent).scaleEffect(1.3)
+                            Text(loc("解析潜水日志…", "Parsing dive logs…"))
+                                .font(.system(size: 12)).foregroundStyle(Theme.muted)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 140)
                     } else {
                         ContentUnavailableView(
                             loc("连接你的潜水电脑", "Connect your dive computer"),

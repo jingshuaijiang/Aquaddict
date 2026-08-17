@@ -263,7 +263,3 @@ struct DiveMultiPickerSheet: View {
         .presentationDetents([.large])
     }
 }
-
-extension Dive: Equatable {
-    static func == (lhs: Dive, rhs: Dive) -> Bool { lhs.id == rhs.id }
-}

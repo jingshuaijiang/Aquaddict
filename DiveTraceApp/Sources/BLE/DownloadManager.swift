@@ -1,6 +1,15 @@
 import Foundation
 import DiveKit
 
+/// Where BLE-downloaded raw PNF logs live (shared with DiveStore's loader,
+/// which runs off the main actor).
+let divesDirectory: URL = {
+    let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Dives", isDirectory: true)
+    try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    return dir
+}()
+
 /// Orchestrates a download session: connect → identify → manifest → fetch only
 /// new dives (fingerprint = manifest record bytes, remembered per serial) →
 /// persist raw PNF into Documents so DiveStore picks them up.
@@ -16,13 +25,6 @@ final class DownloadManager {
     }
 
     private(set) var phase: Phase = .idle
-
-    static let divesDirectory: URL = {
-        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Dives", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }()
 
     private func knownFingerprints(serial: String) -> Set<Data> {
         let key = "fingerprints.\(serial)"
@@ -56,7 +58,7 @@ final class DownloadManager {
                 let pnf = try await session.downloadDive(record, baseAddress: base)
                 guard let (header, samples) = try? PNFParser.parse(pnf), !samples.isEmpty
                 else { continue }
-                let url = Self.divesDirectory
+                let url = divesDirectory
                     .appendingPathComponent("\(header.startTimestamp)_\(info.serial).pnf")
                 try pnf.write(to: url)
                 known.insert(record.raw)
@@ -66,7 +68,7 @@ final class DownloadManager {
             try? await session.close()
             ble.disconnect()
 
-            store.reloadFromDisk()
+            await store.reload()
             phase = .done(new: newCount)
         } catch {
             ble.disconnect()
