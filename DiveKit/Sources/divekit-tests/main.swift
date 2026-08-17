@@ -7,6 +7,7 @@ shearwaterProtocolTests()
 gnssTests()
 gasPlannerTests()
 trimModelTests()
+weightCalcTests()
 
 print("\n\(checks) checks, \(failures) failures")
 exit(failures == 0 ? 0 : 1)
