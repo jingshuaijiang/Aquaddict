@@ -55,14 +55,28 @@ struct Dive: Identifiable, Sendable, Hashable {
 // (everything downloaded over BLE). Both are raw PNF parsed by DiveKit.
 @MainActor @Observable
 final class DiveStore {
-    private(set) var dives: [Dive] = []
+    static let shortDiveSeconds = 300
+
+    /// Every parsed dive, numbering stable regardless of filters.
+    private(set) var allDives: [Dive] = []
     private(set) var isLoading = false
+
+    /// What the UI shows: short entries hidden when the pref says so.
+    var dives: [Dive] {
+        Prefs.shared.hideShortDives
+            ? allDives.filter { $0.durationS >= Self.shortDiveSeconds }
+            : allDives
+    }
+
+    var hiddenShortCount: Int {
+        allDives.filter { $0.durationS < Self.shortDiveSeconds }.count
+    }
 
     var latest: Dive? { dives.last }
     var trainingDives: [Dive] { dives.filter { $0.training && $0.metrics != nil } }
 
     func load() {
-        guard dives.isEmpty, !isLoading else { return }
+        guard allDives.isEmpty, !isLoading else { return }
         isLoading = true
         Task {
             await reload()
@@ -75,7 +89,7 @@ final class DiveStore {
         let parsed = await Task.detached(priority: .userInitiated) {
             Self.parseAll()
         }.value
-        dives = parsed
+        allDives = parsed
     }
 
     private nonisolated static func parseAll() -> [Dive] {

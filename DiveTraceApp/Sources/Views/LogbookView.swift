@@ -245,9 +245,27 @@ struct LogbookView: View {
     private var listHeader: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(loc("日志本", "Logbook")).font(.system(size: 16, weight: .bold))
-            Text("\(store.dives.count)" + loc(" 潜", " dives"))
+            Text("\(store.dives.count)" + loc(" 潜", " dives")
+                 + (prefs.hideShortDives && store.hiddenShortCount > 0
+                    ? loc("（已隐藏 \(store.hiddenShortCount) 短潜）",
+                          " (\(store.hiddenShortCount) short hidden)")
+                    : ""))
                 .font(.system(size: 11)).foregroundStyle(Theme.muted)
             Spacer()
+            Menu {
+                Button {
+                    prefs.hideShortDives.toggle()
+                } label: {
+                    Label(loc("隐藏短于 5 分钟的潜水", "Hide dives under 5 min"),
+                          systemImage: prefs.hideShortDives ? "checkmark" : "")
+                }
+            } label: {
+                Image(systemName: "line.3.horizontal.decrease.circle"
+                      + (prefs.hideShortDives ? ".fill" : ""))
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.accent)
+            }
+            .buttonStyle(.plain)
             Button(selecting ? loc("完成", "Done") : loc("选择", "Select")) {
                 selecting.toggle()
                 if !selecting { selected = [] }

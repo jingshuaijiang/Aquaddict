@@ -14,8 +14,15 @@ final class Prefs: @unchecked Sendable {
         didSet { UserDefaults.standard.set(imperial, forKey: "imperialUnits") }
     }
 
+    /// Hide sub-5-minute entries (gear checks, aborted descents) by default.
+    var hideShortDives: Bool {
+        didSet { UserDefaults.standard.set(hideShortDives, forKey: "hideShortDives") }
+    }
+
     private init() {
         imperial = UserDefaults.standard.bool(forKey: "imperialUnits")
+        hideShortDives = UserDefaults.standard.object(forKey: "hideShortDives")
+            as? Bool ?? true
     }
 
     static let isChinese: Bool =
