@@ -21,6 +21,7 @@ struct YearStats {
     let buddyCount: Int
     let speciesCount: Int
     let topSpecies: (name: String, count: Int)?
+    let totalKcal: Double
 
     var totalHours: Int { totalSeconds / 3600 }
     var totalMinutesRemainder: Int { totalSeconds % 3600 / 60 }
@@ -80,6 +81,13 @@ struct YearStats {
         let stabA = train.count >= 4 ? avg(Array(train.prefix(third))) : nil
         let stabB = train.count >= 4 ? avg(Array(train.suffix(third))) : nil
 
+        let bodyKg = UserDefaults.standard.double(forKey: "wcBody").nonZero ?? 75
+        let tankL = GearStore.shared.defaultTankL
+        let totalKcal = yearDives.compactMap {
+            CalorieEstimator.estimate(samples: $0.samples, intervalS: $0.intervalS,
+                                      tankL: tankL, bodyKg: bodyKg)?.totalKcal
+        }.reduce(0, +)
+
         let speciesStore = SpeciesStore.shared
         var speciesCounts: [String: Int] = [:]
         for d in yearDives {
@@ -111,7 +119,8 @@ struct YearStats {
             buddyCount: buddyCounts.count,
             speciesCount: speciesCounts.count,
             topSpecies: speciesCounts.max { $0.value < $1.value }
-                .map { ($0.key, $0.value) }
+                .map { ($0.key, $0.value) },
+            totalKcal: totalKcal
         )
     }
 

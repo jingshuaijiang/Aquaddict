@@ -132,6 +132,18 @@ struct YearReviewView: View {
             }))
         }
 
+        if s.totalKcal > 100 {
+            let hotpots = max(1, Int(s.totalKcal / 800))
+            out.append(AnyView(StoryCard(hue: 3) {
+                eyebrow(loc("水下燃烧", "BURNED UNDERWATER"))
+                big("\(Int(s.totalKcal.rounded()))", "kcal")
+                Text(loc("呼吸做功 + 冷水保温的估算值", "Estimated from breathing work + thermal cost"))
+                    .font(.system(size: 13)).foregroundStyle(Theme.muted)
+                quip(loc("差不多是 \(hotpots) 顿火锅 — 潜完狂饿是有道理的",
+                         "About \(hotpots) hotpot dinners — post-dive hunger is real"))
+            }))
+        }
+
         if s.speciesCount > 0, let top = s.topSpecies {
             out.append(AnyView(StoryCard(hue: 5) {
                 eyebrow(loc("年度图鉴", "LIFE LIST"))

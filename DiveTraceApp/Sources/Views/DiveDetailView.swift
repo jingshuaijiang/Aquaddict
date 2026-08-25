@@ -51,6 +51,13 @@ struct DiveDetailView: View {
         Text(t).font(.system(size: 14, weight: .bold)).padding(.top, 6)
     }
 
+    private var calorieEstimate: CalorieEstimator.Estimate? {
+        CalorieEstimator.estimate(
+            samples: dive.samples, intervalS: dive.intervalS,
+            tankL: GearStore.shared.defaultTankL,
+            bodyKg: UserDefaults.standard.double(forKey: "wcBody").nonZero ?? 75)
+    }
+
     private var maxAscent: Double {
         let iv = Double(max(dive.intervalS, 1))
         var m = 0.0
@@ -74,6 +81,13 @@ struct DiveDetailView: View {
                  String(format: "%.1f", prefs.imperial ? maxAscent * U.ftPerM : maxAscent),
                  U.rateUnit)
             stat(loc("CNS 峰值", "CNS PEAK"), "\(dive.cnsMax)", "%")
+            if let cal = calorieEstimate {
+                stat(loc("估算消耗", "EST. BURN") +
+                     (cal.source == .ventilation ? " ·🫁" : ""),
+                     "\(Int(cal.totalKcal.rounded()))", "kcal")
+                stat(loc("燃烧速率", "BURN RATE"),
+                     "\(Int(cal.avgKcalPerHour.rounded()))", "kcal/h")
+            }
         }
     }
 

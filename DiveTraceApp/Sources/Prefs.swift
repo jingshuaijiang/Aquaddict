@@ -81,3 +81,9 @@ enum U {
                  : String(format: "%.2f bar/min", barPerMin)
     }
 }
+
+
+extension Double {
+    /// nil when zero — for optional-style UserDefaults reads.
+    var nonZero: Double? { self == 0 ? nil : self }
+}

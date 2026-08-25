@@ -9,6 +9,7 @@ gasPlannerTests()
 trimModelTests()
 weightCalcTests()
 decoTests()
+calorieTests()
 
 print("\n\(checks) checks, \(failures) failures")
 exit(failures == 0 ? 0 : 1)
