@@ -85,6 +85,17 @@ struct LogbookView: View {
                         Text("\(selected.count)" + loc(" 潜已选", " selected"))
                             .font(.system(size: 13)).foregroundStyle(Theme.muted)
                         Spacer()
+                        Button(loc("合并", "Merge")) {
+                            MergeStore.shared.merge(Array(selected))
+                            selecting = false
+                            selected = []
+                        }
+                        .disabled(selected.count < 2)
+                        .font(.system(size: 13, weight: .bold))
+                        .padding(.horizontal, 14).padding(.vertical, 9)
+                        .background(selected.count < 2 ? Theme.faint : Theme.ndl,
+                                    in: Capsule())
+                        .foregroundStyle(Theme.abyss)
                         Button(loc("关联到潜点", "Assign to site")) {
                             showBatchAssign = true
                         }
@@ -292,6 +303,14 @@ struct DiveRow: View {
                             .foregroundStyle(Theme.accent)
                             .overlay(RoundedRectangle(cornerRadius: 6)
                                 .stroke(Theme.accent.opacity(0.4), lineWidth: 1))
+                    }
+                    if let group = MergeStore.shared.group(containing: dive.id) {
+                        Text("×\(group.count)").font(.system(size: 9, weight: .bold,
+                                                             design: .monospaced))
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .foregroundStyle(Theme.ndl)
+                            .overlay(RoundedRectangle(cornerRadius: 6)
+                                .stroke(Theme.ndl.opacity(0.4), lineWidth: 1))
                     }
                 }
                 Text(dive.dateText + " · " + U.tempRange(dive.tempMin, dive.tempMax))

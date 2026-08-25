@@ -61,11 +61,13 @@ final class DiveStore {
     private(set) var allDives: [Dive] = []
     private(set) var isLoading = false
 
-    /// What the UI shows: short entries hidden when the pref says so.
+    /// What the UI shows: merge groups collapsed into virtual dives, then
+    /// short entries hidden when the pref says so.
     var dives: [Dive] {
-        Prefs.shared.hideShortDives
-            ? allDives.filter { $0.durationS >= Self.shortDiveSeconds }
-            : allDives
+        let merged = Self.applyMerges(allDives, groups: MergeStore.shared.groups)
+        return Prefs.shared.hideShortDives
+            ? merged.filter { $0.durationS >= Self.shortDiveSeconds }
+            : merged
     }
 
     var hiddenShortCount: Int {
@@ -133,6 +135,57 @@ final class DiveStore {
                  metrics: TrainingMetrics.compute(samples: p.2,
                                                   intervalS: p.1.intervalMs / 1000))
         }
+    }
+
+    /// Collapse each merge group into one virtual dive: samples concatenated
+    /// on the true wall-clock timeline with surface bridges (0 m) across the
+    /// gaps, metrics recomputed over the whole session.
+    static func applyMerges(_ all: [Dive], groups: [[UInt32]]) -> [Dive] {
+        guard !groups.isEmpty else { return all }
+        var byID: [UInt32: Dive] = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+        var out = all
+
+        for group in groups {
+            let members = group.compactMap { byID[$0] }
+                .sorted { $0.header.startTimestamp < $1.header.startTimestamp }
+            guard members.count >= 2, let base = members.first else { continue }
+
+            var combined: [DiveSample] = []
+            for m in members {
+                let offset = Int(m.header.startTimestamp) - Int(base.header.startTimestamp)
+                if let lastT = combined.last?.timeS, let firstNew = m.samples.first {
+                    // surface bridge across the gap
+                    let iv = base.intervalS
+                    let bridgeStart = lastT + iv
+                    let bridgeEnd = offset + firstNew.timeS - iv
+                    for t in [bridgeStart, max(bridgeStart, bridgeEnd)] {
+                        combined.append(DiveSample(
+                            timeS: t, depthM: 0, tempC: firstNew.tempC,
+                            ndlMin: 99, ttsMin: 0, decoStopM: 0,
+                            avgPPO2: 0.21, o2: firstNew.o2, he: firstNew.he, cns: 0))
+                    }
+                }
+                for smp in m.samples {
+                    combined.append(DiveSample(
+                        timeS: offset + smp.timeS, depthM: smp.depthM, tempC: smp.tempC,
+                        ndlMin: smp.ndlMin, ttsMin: smp.ttsMin, decoStopM: smp.decoStopM,
+                        avgPPO2: smp.avgPPO2, o2: smp.o2, he: smp.he, cns: smp.cns,
+                        tank1Bar: smp.tank1Bar, tank2Bar: smp.tank2Bar,
+                        setpoint: smp.setpoint))
+                }
+            }
+
+            let virtual = Dive(
+                n: base.n, header: base.header, samples: combined,
+                training: members.contains { $0.training },
+                metrics: TrainingMetrics.compute(samples: combined,
+                                                 intervalS: base.intervalS))
+            let memberIDs = Set(members.map(\.id))
+            out.removeAll { memberIDs.contains($0.id) }
+            out.append(virtual)
+            byID[base.id] = virtual
+        }
+        return out.sorted { $0.header.startTimestamp < $1.header.startTimestamp }
     }
 
     /// Start timestamp without a full parse: opening record 0, bytes 12-15 BE.

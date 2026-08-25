@@ -29,6 +29,7 @@ struct DiveDetailView: View {
                     sectionTitle(loc("训练评分", "Training Scores"))
                     trainingScores(m)
                 }
+                mergeCard
                 sectionTitle(loc("潜点 · 笔记", "Site · Notes"))
                 siteRow
                 buddyRow
@@ -305,6 +306,27 @@ struct DiveDetailView: View {
         .padding(12)
         .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.line, lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private var mergeCard: some View {
+        if let group = MergeStore.shared.group(containing: dive.id) {
+            HStack {
+                Image(systemName: "square.stack.3d.down.right.fill")
+                    .foregroundStyle(Theme.ndl)
+                Text(loc("由 \(group.count) 段合并（水面间隔画在 0 m）",
+                         "Merged from \(group.count) fragments (surface gaps at 0 m)"))
+                    .font(.system(size: 12)).foregroundStyle(Theme.muted)
+                Spacer()
+                Button(loc("解除合并", "Unmerge")) {
+                    MergeStore.shared.unmerge(containing: dive.id)
+                }
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Theme.ndl)
+                .buttonStyle(.plain)
+            }
+            .cardStyle()
+        }
     }
 
     private var siteRow: some View {
