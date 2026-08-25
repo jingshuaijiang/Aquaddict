@@ -44,6 +44,10 @@ struct Dive: Identifiable, Sendable, Hashable {
 
     var dateText: String { Self.short.string(from: date) }
     var dayText: String { Self.dayOnly.string(from: date) }
+
+    /// Best surface fix: entry when the GPS locked before the splash,
+    /// otherwise the exit fix (quick entries often miss the first one).
+    var anyLocation: GeoPoint? { header.entryLocation ?? header.exitLocation }
 }
 
 // Loads dives from two places, deduped by start timestamp:

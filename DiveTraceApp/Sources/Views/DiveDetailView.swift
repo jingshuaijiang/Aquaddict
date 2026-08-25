@@ -362,13 +362,19 @@ struct DiveDetailView: View {
 
     @ViewBuilder
     private var locationSection: some View {
-        if let entry = dive.header.entryLocation {
+        let entry = dive.header.entryLocation
+        let exit = dive.header.exitLocation
+        if entry != nil || exit != nil {
             VStack(spacing: 0) {
-                kv(loc("入水坐标", "Entry"), String(format: "%.5f, %.5f",
-                                                    entry.latitude, entry.longitude))
-                if let exit = dive.header.exitLocation {
-                    kv(loc("出水坐标", "Exit"), String(format: "%.5f, %.5f",
-                                                       exit.latitude, exit.longitude),
+                if let entry {
+                    kv(loc("入水坐标", "Entry"), String(format: "%.5f, %.5f",
+                                                        entry.latitude, entry.longitude),
+                       last: exit == nil)
+                }
+                if let exit {
+                    kv(loc("出水坐标", "Exit") +
+                       (entry == nil ? loc("（入水未定位）", " (no entry fix)") : ""),
+                       String(format: "%.5f, %.5f", exit.latitude, exit.longitude),
                        last: true)
                 }
             }

@@ -26,7 +26,7 @@ enum NearbySites {
     static func cluster(_ dives: [Dive]) -> [DiveCluster] {
         var clusters: [(center: CLLocationCoordinate2D, dives: [Dive])] = []
         for dive in dives {
-            guard let p = dive.header.entryLocation else { continue }
+            guard let p = dive.anyLocation else { continue }
             let c = CLLocationCoordinate2D(latitude: p.latitude, longitude: p.longitude)
             if let i = clusters.firstIndex(where: {
                 MKMapPoint($0.center).distance(to: MKMapPoint(c)) < 500

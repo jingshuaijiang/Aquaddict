@@ -16,7 +16,7 @@ struct SitePickerSheet: View {
     @State private var searching = false
 
     private var searchCenter: GeoPoint? {
-        dives.compactMap { $0.header.entryLocation }.first
+        dives.compactMap { $0.anyLocation }.first
     }
 
     var body: some View {
@@ -80,7 +80,7 @@ struct SitePickerSheet: View {
                 } header: {
                     Text(loc("新建", "CREATE"))
                 } footer: {
-                    if dives.first?.header.entryLocation != nil {
+                    if dives.first?.anyLocation != nil {
                         Text(loc("将使用所选潜水的 GNSS 坐标",
                                  "Uses the selected dive's GNSS position"))
                     } else {
@@ -151,7 +151,7 @@ struct SitePickerSheet: View {
     }
 
     private func create() {
-        let loc0 = dives.first?.header.entryLocation
+        let loc0 = dives.first?.anyLocation
         let site = siteStore.createSite(name: newName.trimmingCharacters(in: .whitespaces),
                                         latitude: loc0?.latitude,
                                         longitude: loc0?.longitude)

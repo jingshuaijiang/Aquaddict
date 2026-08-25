@@ -11,7 +11,7 @@ struct MapTabView: View {
     @State private var draftName = ""
 
     private var gnssDives: [Dive] {
-        store.dives.filter { $0.header.entryLocation != nil }
+        store.dives.filter { $0.anyLocation != nil }
     }
 
     private var mappableSites: [DiveSite] {
@@ -19,8 +19,8 @@ struct MapTabView: View {
     }
 
     private var initialPosition: MapCameraPosition {
-        var lats = gnssDives.compactMap { $0.header.entryLocation?.latitude }
-        var lons = gnssDives.compactMap { $0.header.entryLocation?.longitude }
+        var lats = gnssDives.compactMap { $0.anyLocation?.latitude }
+        var lons = gnssDives.compactMap { $0.anyLocation?.longitude }
         lats += mappableSites.compactMap(\.latitude)
         lons += mappableSites.compactMap(\.longitude)
         guard let latMin = lats.min(), let latMax = lats.max(),
@@ -60,7 +60,7 @@ struct MapTabView: View {
                     }
                     // raw GNSS pins for dives not yet assigned to a site
                     ForEach(gnssDives.filter { siteStore.site(for: $0.id) == nil }) { dive in
-                        let loc0 = dive.header.entryLocation!
+                        let loc0 = dive.anyLocation!
                         Annotation("#\(dive.n)", coordinate: CLLocationCoordinate2D(
                             latitude: loc0.latitude, longitude: loc0.longitude)) {
                             Button { selectedDive = dive } label: {
