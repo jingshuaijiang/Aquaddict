@@ -10,6 +10,9 @@ struct DiveDetailView: View {
     @State private var showBuddyPicker = false
     @State private var speciesStore = SpeciesStore.shared
     @State private var showSpeciesPicker = false
+    @State private var tankStore = TankAssignStore.shared
+
+    private var diveTank: TankChoice { tankStore.resolve(dive.id) }
 
     var body: some View {
         ScrollView {
@@ -54,7 +57,7 @@ struct DiveDetailView: View {
     private var calorieEstimate: CalorieEstimator.Estimate? {
         CalorieEstimator.estimate(
             samples: dive.samples, intervalS: dive.intervalS,
-            tankL: GearStore.shared.defaultTankL,
+            tankL: diveTank.volumeL,
             bodyKg: UserDefaults.standard.double(forKey: "wcBody").nonZero ?? 75)
     }
 
@@ -83,9 +86,7 @@ struct DiveDetailView: View {
             stat(loc("CNS 峰值", "CNS PEAK"), "\(dive.cnsMax)", "%")
             if let cal = calorieEstimate {
                 stat(loc("估算消耗", "EST. BURN") +
-                     (cal.source == .ventilation
-                      ? " ·🫁@\(String(format: "%.0f", GearStore.shared.defaultTankL))L"
-                      : ""),
+                     (cal.source == .ventilation ? " ·🫁\(diveTank.name)" : ""),
                      "\(Int(cal.totalKcal.rounded()))", "kcal")
                 stat(loc("燃烧速率", "BURN RATE"),
                      "\(Int(cal.avgKcalPerHour.rounded()))", "kcal/h")
@@ -132,9 +133,48 @@ struct DiveDetailView: View {
                + " \(h.waterDensity) · \(h.surfaceMbar) mbar")
             sacRows
             ccrRows
-            kv(loc("采样间隔", "Sample rate"), "\(dive.intervalS) s", last: true)
+            kv(loc("采样间隔", "Sample rate"), "\(dive.intervalS) s")
+            tankPickerRow
         }
         .cardStyle()
+    }
+
+    // Which rig was worn on THIS dive — drives RMV and calorie numbers.
+    private var tankPickerRow: some View {
+        HStack {
+            Text(loc("本潜瓶组", "Tank this dive"))
+                .font(.system(size: 13)).foregroundStyle(Theme.muted)
+            Spacer()
+            Menu {
+                ForEach(GearStore.shared.tanks) { tank in
+                    Button("\(tank.name) · \(String(format: "%.1f", tank.volumeL))L") {
+                        tankStore.assign(TankChoice(name: tank.name,
+                                                    volumeL: tank.volumeL),
+                                         to: dive.id)
+                    }
+                }
+                ForEach(TankPreset.all, id: \.name) { preset in
+                    Button("\(preset.name) · \(String(format: "%.1f", preset.volumeL))L") {
+                        tankStore.assign(TankChoice(name: preset.name,
+                                                    volumeL: preset.volumeL),
+                                         to: dive.id)
+                    }
+                }
+                Button(loc("跟随默认 ⭐", "Follow default ⭐")) {
+                    tankStore.clear(dive.id)
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(diveTank.name
+                         + (tankStore.isExplicit(dive.id) ? "" : " ⭐"))
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 9))
+                }
+                .foregroundStyle(Theme.accent)
+            }
+        }
+        .padding(.vertical, 11)
     }
 
     private var tissueRow: some View {
@@ -195,8 +235,8 @@ struct DiveDetailView: View {
             let minutes = Double(last.0 - first.0) / 60.0
             let avgAta = 1.0 + dive.avgDepth / 10.0
             let sacBar = (first.1 - last.1) / minutes / avgAta
-            let tankL = GearStore.shared.defaultTankL
-            let tankName = GearStore.shared.defaultTankName
+            let tankL = diveTank.volumeL
+            let tankName = diveTank.name
             let rmvL = sacBar * tankL
             kv(loc("气瓶压力", "Tank pressure"),
                "\(U.pressure(first.1)) → \(U.pressure(last.1))", color: Theme.pressure)

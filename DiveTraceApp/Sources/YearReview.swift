@@ -82,10 +82,11 @@ struct YearStats {
         let stabB = train.count >= 4 ? avg(Array(train.suffix(third))) : nil
 
         let bodyKg = UserDefaults.standard.double(forKey: "wcBody").nonZero ?? 75
-        let tankL = GearStore.shared.defaultTankL
+        let tankStore = TankAssignStore.shared
         let totalKcal = yearDives.compactMap {
             CalorieEstimator.estimate(samples: $0.samples, intervalS: $0.intervalS,
-                                      tankL: tankL, bodyKg: bodyKg)?.totalKcal
+                                      tankL: tankStore.resolve($0.id).volumeL,
+                                      bodyKg: bodyKg)?.totalKcal
         }.reduce(0, +)
 
         let speciesStore = SpeciesStore.shared
