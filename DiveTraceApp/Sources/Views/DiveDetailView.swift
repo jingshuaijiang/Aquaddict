@@ -83,7 +83,9 @@ struct DiveDetailView: View {
             stat(loc("CNS 峰值", "CNS PEAK"), "\(dive.cnsMax)", "%")
             if let cal = calorieEstimate {
                 stat(loc("估算消耗", "EST. BURN") +
-                     (cal.source == .ventilation ? " ·🫁" : ""),
+                     (cal.source == .ventilation
+                      ? " ·🫁@\(String(format: "%.0f", GearStore.shared.defaultTankL))L"
+                      : ""),
                      "\(Int(cal.totalKcal.rounded()))", "kcal")
                 stat(loc("燃烧速率", "BURN RATE"),
                      "\(Int(cal.avgKcalPerHour.rounded()))", "kcal/h")

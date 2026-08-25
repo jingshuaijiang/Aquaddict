@@ -56,9 +56,42 @@ func calorieTests() {
         expectEqual(calm.source.rawValue, "ventilation", "AI data → ventilation path")
         expect(heavy.totalKcal > calm.totalKcal * 1.5,
                "double the gas, much more work: \(calm.totalKcal) vs \(heavy.totalKcal)")
-        // sanity on magnitude: 0.3 bar/10s… rate 0.3/10s = 1.8 bar/min·12L/2ata
-        // ≈ 10.8 L/min RMV → VO2 0.42 → ~2 kcal/min ≈ 60 kcal + resting floor
-        expect(calm.totalKcal > 30 && calm.totalKcal < 200,
+        // sanity on magnitude: 1.8 bar/min · 12L / 2 ata = 10.8 L/min RMV →
+        // VO2 ≈ 0.47 (VE 22.5 @2 ata) → ~2.3 kcal/min ≈ 70 kcal over 30 min
+        expect(calm.totalKcal > 40 && calm.totalKcal < 220,
                "calm magnitude sane: \(calm.totalKcal)")
+    }
+
+    runTest("transmitterDropoutsDontDeleteWork") {
+        func mk(dropout: Bool) -> [DiveSample] {
+            (0 ... 180).map { i in
+                DiveSample(timeS: i * 10, depthM: 10, tempC: 29, ndlMin: 90,
+                           ttsMin: 1, decoStopM: 0, avgPPO2: 0.3, o2: 21, he: 0,
+                           cns: 0,
+                           tank1Bar: (dropout && i % 3 == 0)
+                               ? nil : 200 - 0.5 * Double(i))
+            }
+        }
+        let full = CalorieEstimator.estimate(samples: mk(dropout: false),
+                                             intervalS: 10, tankL: 12, bodyKg: 75)!
+        let holey = CalorieEstimator.estimate(samples: mk(dropout: true),
+                                              intervalS: 10, tankL: 12, bodyKg: 75)!
+        expect(abs(full.totalKcal - holey.totalKcal) < full.totalKcal * 0.15,
+               "1/3 dropout ≈ same total: \(full.totalKcal) vs \(holey.totalKcal)")
+    }
+
+    runTest("doublesTankDoublesWork") {
+        let samples: [DiveSample] = (0 ... 180).map { i in
+            DiveSample(timeS: i * 10, depthM: 10, tempC: 29, ndlMin: 90,
+                       ttsMin: 1, decoStopM: 0, avgPPO2: 0.3, o2: 21, he: 0,
+                       cns: 0, tank1Bar: 200 - 0.3 * Double(i))
+        }
+        let single = CalorieEstimator.estimate(samples: samples, intervalS: 10,
+                                               tankL: 11.1, bodyKg: 75)!
+        let doubles = CalorieEstimator.estimate(samples: samples, intervalS: 10,
+                                                tankL: 25.8, bodyKg: 75)!
+        expect(doubles.totalKcal > single.totalKcal * 1.6,
+               "same bar-drop on doubles = far more gas & work: "
+               + "\(single.totalKcal) vs \(doubles.totalKcal)")
     }
 }
