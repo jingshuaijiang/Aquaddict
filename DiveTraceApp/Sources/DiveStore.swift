@@ -98,28 +98,36 @@ final class DiveStore {
         struct Meta: Decodable { let n: Int; let date: String; let training: Bool }
         var loaded: [UInt32: (Data, Bool)] = [:]  // startTs -> (raw, training)
 
-        // 1. bundled history
+        // 1. BLE downloads / migrated logs in Documents (win over bundled
+        //    duplicates)
+        var onDisk = Set<UInt32>()
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: divesDirectory, includingPropertiesForKeys: nil)) ?? []
+        for url in files where url.pathExtension == "pnf" {
+            guard let raw = try? Data(contentsOf: url),
+                  let ts = Self.quickTimestamp(raw) else { continue }
+            loaded[ts] = (raw, false)
+            onDisk.insert(ts)
+        }
+
+        // 2. bundled history: fills gaps and carries the training flags. Any
+        //    bundle-only dive is copied into Documents so history survives
+        //    builds that slim the bundle down (raw blobs are never discarded).
         if let metaURL = Bundle.main.url(forResource: "meta", withExtension: "json"),
            let metaData = try? Data(contentsOf: metaURL),
            let meta = try? JSONDecoder().decode([Meta].self, from: metaData) {
             for m in meta {
                 let name = String(format: "dive_%03d", m.n)
                 guard let url = Bundle.main.url(forResource: name, withExtension: "pnf"),
-                      let raw = try? Data(contentsOf: url) else { continue }
-                if let ts = Self.quickTimestamp(raw) {
-                    loaded[ts] = (raw, m.training)
+                      let raw = try? Data(contentsOf: url),
+                      let ts = Self.quickTimestamp(raw) else { continue }
+                loaded[ts] = (loaded[ts]?.0 ?? raw, m.training)
+                if !onDisk.contains(ts) {
+                    try? raw.write(to: divesDirectory
+                        .appendingPathComponent("\(ts)_bundled.pnf"))
+                    onDisk.insert(ts)
                 }
             }
-        }
-
-        // 2. BLE downloads (win over bundled duplicates)
-        let files = (try? FileManager.default.contentsOfDirectory(
-            at: divesDirectory, includingPropertiesForKeys: nil)) ?? []
-        for url in files where url.pathExtension == "pnf" {
-            guard let raw = try? Data(contentsOf: url),
-                  let ts = Self.quickTimestamp(raw) else { continue }
-            let training = loaded[ts]?.1 ?? false
-            loaded[ts] = (raw, training)
         }
 
         // parse everything, order by time, number sequentially
