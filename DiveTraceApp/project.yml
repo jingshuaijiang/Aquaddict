@@ -15,6 +15,9 @@ targets:
       - Resources
     dependencies:
       - package: DiveKit
+    scheme:
+      testTargets:
+        - DiveTraceUITests
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.jjsbanana.divetrace
@@ -33,4 +36,18 @@ targets:
         SWIFT_VERSION: "6.0"
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 25R2A5LGHQ
+  DiveTraceUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - UITests
+    dependencies:
+      - target: DiveTrace
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jjsbanana.divetrace.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: DiveTrace
+        SWIFT_VERSION: "6.0"
         DEVELOPMENT_TEAM: 25R2A5LGHQ
