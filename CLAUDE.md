@@ -99,6 +99,23 @@ Preparing for a 1.0 release. What already exists — keep it working:
   app reviewable).
 - First launch shows a safety notice (`SafetyNoticeView`) — guideline 1.4
   cover for the deco/gas tools. Don't remove it.
+- TestFlight upload (owner's machine; API key in
+  `~/.appstoreconnect/private_keys/`, never in the repo):
+
+  ```bash
+  cd DiveTraceApp
+  xcodebuild -project DiveTrace.xcodeproj -scheme DiveTrace \
+    -configuration Release -destination 'generic/platform=iOS' \
+    -archivePath build/Aquaddict.xcarchive archive \
+    -allowProvisioningUpdates \
+    -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8 \
+    -authenticationKeyID <KEYID> -authenticationKeyIssuerID <ISSUER>
+  # ExportOptions.plist: method app-store-connect, destination upload,
+  # signingStyle automatic, then:
+  xcodebuild -exportArchive -archivePath build/Aquaddict.xcarchive \
+    -exportOptionsPlist build/ExportOptions.plist -exportPath build/export \
+    -allowProvisioningUpdates -authenticationKeyPath ... (same key args)
+  ```
 
 ## Known debts / next candidates
 
