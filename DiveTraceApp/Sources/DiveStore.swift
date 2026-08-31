@@ -60,6 +60,9 @@ final class DiveStore {
     /// Every parsed dive, numbering stable regardless of filters.
     private(set) var allDives: [Dive] = []
     private(set) var isLoading = false
+    /// True while the logbook shows the bundled sample dives (fresh installs
+    /// only — they disappear as soon as a real log lands in Documents).
+    private(set) var isDemoData = false
 
     /// What the UI shows: merge groups collapsed into virtual dives, then
     /// short entries hidden when the pref says so.
@@ -88,32 +91,44 @@ final class DiveStore {
 
     /// Parse all logs off the main actor, then publish on it.
     func reload() async {
-        let parsed = await Task.detached(priority: .userInitiated) {
+        let (parsed, demo) = await Task.detached(priority: .userInitiated) {
             Self.parseAll()
         }.value
         allDives = parsed
+        isDemoData = demo
     }
 
-    private nonisolated static func parseAll() -> [Dive] {
+    private nonisolated static func parseAll() -> (dives: [Dive], demo: Bool) {
         struct Meta: Decodable { let n: Int; let date: String; let training: Bool }
         var loaded: [UInt32: (Data, Bool)] = [:]  // startTs -> (raw, training)
 
-        // 1. BLE downloads / migrated logs in Documents (win over bundled
-        //    duplicates)
-        var onDisk = Set<UInt32>()
+        // Training flags for downloaded/migrated history. Written to Documents
+        // when the old real-dive bundle (whose meta.json carried the flags)
+        // was migrated off the bundle in Aug 2026.
+        var trainingTS = Set<UInt32>()
+        let flagsURL = FileManager.default.urls(for: .documentDirectory,
+                                                in: .userDomainMask)[0]
+            .appendingPathComponent("training_flags.json")
+        if let d = try? Data(contentsOf: flagsURL),
+           let ts = try? JSONDecoder().decode([UInt32].self, from: d) {
+            trainingTS = Set(ts)
+        }
+
+        // 1. BLE downloads / migrated history in Documents
         let files = (try? FileManager.default.contentsOfDirectory(
             at: divesDirectory, includingPropertiesForKeys: nil)) ?? []
         for url in files where url.pathExtension == "pnf" {
             guard let raw = try? Data(contentsOf: url),
                   let ts = Self.quickTimestamp(raw) else { continue }
-            loaded[ts] = (raw, false)
-            onDisk.insert(ts)
+            loaded[ts] = (raw, trainingTS.contains(ts))
         }
 
-        // 2. bundled history: fills gaps and carries the training flags. Any
-        //    bundle-only dive is copied into Documents so history survives
-        //    builds that slim the bundle down (raw blobs are never discarded).
-        if let metaURL = Bundle.main.url(forResource: "meta", withExtension: "json"),
+        // 2. no logs yet (fresh install): show the bundled sample dives so
+        //    the whole app is browsable before the first download. They are
+        //    never copied to Documents and vanish once a real log lands.
+        var demo = false
+        if loaded.isEmpty,
+           let metaURL = Bundle.main.url(forResource: "meta", withExtension: "json"),
            let metaData = try? Data(contentsOf: metaURL),
            let meta = try? JSONDecoder().decode([Meta].self, from: metaData) {
             for m in meta {
@@ -121,13 +136,9 @@ final class DiveStore {
                 guard let url = Bundle.main.url(forResource: name, withExtension: "pnf"),
                       let raw = try? Data(contentsOf: url),
                       let ts = Self.quickTimestamp(raw) else { continue }
-                loaded[ts] = (loaded[ts]?.0 ?? raw, m.training)
-                if !onDisk.contains(ts) {
-                    try? raw.write(to: divesDirectory
-                        .appendingPathComponent("\(ts)_bundled.pnf"))
-                    onDisk.insert(ts)
-                }
+                loaded[ts] = (raw, m.training)
             }
+            demo = !loaded.isEmpty
         }
 
         // parse everything, order by time, number sequentially
@@ -138,11 +149,12 @@ final class DiveStore {
             parsed.append((ts, header, samples, entry.1))
         }
         parsed.sort { $0.0 < $1.0 }
-        return parsed.enumerated().map { i, p in
+        let dives = parsed.enumerated().map { i, p in
             Dive(n: i, header: p.1, samples: p.2, training: p.3,
                  metrics: TrainingMetrics.compute(samples: p.2,
                                                   intervalS: p.1.intervalMs / 1000))
         }
+        return (dives, demo)
     }
 
     /// Collapse each merge group into one virtual dive: samples concatenated

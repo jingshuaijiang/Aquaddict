@@ -16,6 +16,20 @@ struct LogbookView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     brand
+                    if store.isDemoData {
+                        HStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 12))
+                            Text(loc("示例数据 — 下载你的第一潜后自动替换",
+                                     "Sample dives — replaced after your first download"))
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(Theme.accent)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.accent.opacity(0.12),
+                                    in: RoundedRectangle(cornerRadius: 10))
+                    }
                     if let latest = store.latest {
                         heroCard(latest)
                         if !store.trainingDives.isEmpty {
