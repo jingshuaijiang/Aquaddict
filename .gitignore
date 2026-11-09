@@ -1,3 +1,5 @@
 DiveTraceApp/build-sim/
 *.p8
 AuthKey_*
+xcuserdata/
+DiveTraceApp/build/
